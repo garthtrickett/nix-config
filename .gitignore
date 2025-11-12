@@ -1,1 +1,32 @@
 a.txt
+# Nix build results
+# This is a temporary symlink created by 'nixos-rebuild' that points to the
+# built system in the /nix/store. It changes on every build and should never be tracked.
+/result
+
+# Editor backup/swap files
+# These are temporary files created by editors like vim, nano, and emacs.
+*~
+*.swp
+.*.swp
+*.swo
+.#*
+
+# User-generated bundle for sharing
+# This is the a.txt file created by your script.
+a.txt
+
+# Local environment files for tools like direnv
+# These are not part of the core system configuration.
+.envrc
+.direnv/
+
+# --- SECRETS ---
+# It is a very good practice to keep all secret files (passwords, API keys)
+# in a dedicated, untracked directory. Uncomment the line below if you create one.
+# /secrets/
+
+# You might also use agenix for secrets management, in which case you would
+# want to ignore the private key file.
+# /secrets.age
+# id_ed25519.age

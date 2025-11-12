@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./modules/battery-limiter.nix 
   ];
 
   # The cache settings have been moved to flake.nix for a cleaner and
@@ -73,6 +74,16 @@
   home-manager.users.garth = {
     imports = [ ./home-garth.nix ];
     home.stateVersion = "25.11";
+  };
+
+
+# -------------------------------------------------------------------
+  # 🔋 BATTERY LONGEVITY CONFIGURATION
+  # -------------------------------------------------------------------
+  # This uses the custom module we created in ./modules/battery-limiter.nix
+  services.battery-limiter = {
+    enable = true;
+    threshold = 80; # This is optional, as 80 is the default.
   };
 
   # -------------------------------------------------------------------
