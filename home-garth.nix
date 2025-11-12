@@ -5,7 +5,6 @@
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
-  # Enables the Polkit agent for authentication in graphical sessions.
   services.polkit-gnome.enable = true;
 
   # -------------------------------------------------------------------
@@ -14,17 +13,32 @@
   wayland.windowManager.hyprland = {
     enable = true;
     settings = {
-      monitor = [ ",preferred,auto,1" ];
-      "exec-once" = [ "${pkgs.kitty}/bin/kitty" ];
+      # --- Monitors ---
+      # This is the primary fix for Hyprland itself.
+      # We change the scale from '1' to '2' for 200% scaling.
+      monitor = [
+        ",preferred,auto,2"
+      ];
+
+      # --- Startup Applications ---
+      "exec-once" = [
+        "${pkgs.kitty}/bin/kitty"
+      ];
+
+      # --- Keybindings ---
       bind = [
         "SUPER, 1, workspace, 1"
         "SUPER, Q, exec, killall Hyprland"
       ];
+
+      # --- Input Devices ---
       input = {
         kb_layout = "us";
         follow_mouse = 1;
         touchpad = { natural_scroll = true; };
       };
+
+      # --- General Settings ---
       general = {
         "gaps_in" = 5;
         "gaps_out" = 10;
@@ -37,14 +51,32 @@
   };
 
   # -------------------------------------------------------------------
-  # 📝 HELIX TEXT EDITOR - NEWLY ADDED
+  # ✨ HiDPI & SCALING CONFIGURATION (The Comprehensive Fix)
   # -------------------------------------------------------------------
-  # This enables the Helix editor and manages its configuration.
+  # This section ensures that all applications, not just Hyprland,
+  # are scaled correctly on your high-resolution display.
+
+  # Set environment variables for GTK and Qt applications.
+  home.sessionVariables = {
+    GDK_SCALE = "2";
+    QT_SCALE_FACTOR = "2";
+  };
+
+  # Set XDG settings for font DPI and cursor size.
+  # This helps scale fonts and legacy XWayland applications.
+  xresources.settings = {
+    "Xft.dpi" = 192; # Standard DPI is 96, so 96*2 = 192 for 200% scaling.
+    "Xcursor.size" = 48;
+  };
+  
+  # Ensure the GTK cursor theme also respects the scaled size.
+  gtk.cursorTheme.size = 48;
+
+  # -------------------------------------------------------------------
+  # 📦 USER PACKAGES
+  # -------------------------------------------------------------------
   programs.helix = {
     enable = true;
-    
-    # You can define your Helix 'config.toml' settings here.
-    # For example, to set the theme to 'catppuccin_macchiato':
     settings = {
       theme = "catppuccin_macchiato";
       editor = {
@@ -52,18 +84,9 @@
         cursorline = true;
       };
     };
-    
-    # You can also add extra packages for language servers, etc.
-    # extraPackages = with pkgs; [ rust-analyzer ];
   };
 
-  # -------------------------------------------------------------------
-  # 📦 USER PACKAGES
-  # -------------------------------------------------------------------
-  # These packages are installed directly into the user's profile.
   home.packages = with pkgs; [
-    # Note: We don't need 'helix' here because 'programs.helix.enable'
-    #       installs it for us automatically.
     kitty
     waybar
     wofi
