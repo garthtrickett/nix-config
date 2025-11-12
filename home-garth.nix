@@ -2,46 +2,47 @@
 { config, pkgs, ... }:
 
 {
+  # -------------------------------------------------------------------
+  # 🔑 SESSION SERVICES - THE CRITICAL FIX
+  # -------------------------------------------------------------------
+  # Enable the Polkit agent. This is the "butler" that allows your
+  # Hyprland session to perform privileged actions. Without this,
+  # the login process can fail with an "auth error".
+  services.polkit-gnome.enable = true;
+
+  # -------------------------------------------------------------------
+  #  HYPRLAND CONFIGURATION
+  # -------------------------------------------------------------------
   wayland.windowManager.hyprland = {
     enable = true;
     
-    # We are replacing 'extraConfig' with the structured 'settings' option.
     settings = {
       # --- Monitors ---
-      # 'monitor=' lines go here. Each line is a string in a list.
       monitor = [
         ",preferred,auto,1"
       ];
 
       # --- Startup Applications ---
-      # 'exec-once =' is better for startup apps. Each command is a string in a list.
       "exec-once" = [
         "${pkgs.kitty}/bin/kitty"
-        # You could add more here, like:
-        # "waybar"
-        # "swww init"
       ];
 
       # --- Keybindings ---
-      # All 'bind =' lines go into a list of strings.
       bind = [
         "SUPER, 1, workspace, 1"
         "SUPER, Q, exec, killall Hyprland"
       ];
 
       # --- Input Devices ---
-      # You can now configure nested settings like 'input'.
       input = {
         kb_layout = "us";
         follow_mouse = 1;
-
         touchpad = {
           natural_scroll = true;
         };
       };
 
       # --- General Settings ---
-      # Notice that keys with dots in them must be quoted.
       general = {
         "gaps_in" = 5;
         "gaps_out" = 10;
@@ -50,16 +51,12 @@
         "col.inactive_border" = "rgba(595959aa)";
         layout = "dwindle";
       };
-
-      # Add other Hyprland sections here as needed...
-      # decoration = { ... };
-      # animations = { ... };
-      # dwindle = { ... };
-      # master = { ... };
     };
   };
 
-  # Your packages list remains the same.
+  # -------------------------------------------------------------------
+  # USER PACKAGES
+  # -------------------------------------------------------------------
   home.packages = with pkgs; [
     kitty
     waybar
