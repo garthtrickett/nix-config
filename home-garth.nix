@@ -1,29 +1,65 @@
+# /etc/nixos/home-garth.nix
 { config, pkgs, ... }:
 
 {
-  # This section configures Hyprland for the user 'garth'.
   wayland.windowManager.hyprland = {
     enable = true;
+    
+    # We are replacing 'extraConfig' with the structured 'settings' option.
+    settings = {
+      # --- Monitors ---
+      # 'monitor=' lines go here. Each line is a string in a list.
+      monitor = [
+        ",preferred,auto,1"
+      ];
 
-    # This creates the configuration file at ~/.config/hypr/hyprland.conf
-    extraConfig = ''
-      # See https://wiki.hyprland.org/Configuring/Variables/ for more
+      # --- Startup Applications ---
+      # 'exec-once =' is better for startup apps. Each command is a string in a list.
+      "exec-once" = [
+        "${pkgs.kitty}/bin/kitty"
+        # You could add more here, like:
+        # "waybar"
+        # "swww init"
+      ];
 
-      # Set default monitor to display the workspace
-      monitor=,preferred,auto,1
+      # --- Keybindings ---
+      # All 'bind =' lines go into a list of strings.
+      bind = [
+        "SUPER, 1, workspace, 1"
+        "SUPER, Q, exec, killall Hyprland"
+      ];
 
-      # Execute a terminal (kitty) on startup
-      exec = ${pkgs.kitty}/bin/kitty
+      # --- Input Devices ---
+      # You can now configure nested settings like 'input'.
+      input = {
+        kb_layout = "us";
+        follow_mouse = 1;
 
-      # Set a workspace keybinding: Super + 1
-      bind = SUPER, 1, workspace, 1
+        touchpad = {
+          natural_scroll = true;
+        };
+      };
 
-      # Exit Hyprland keybinding: Super + Q
-      bind = SUPER, Q, exec, killall Hyprland
-    '';
+      # --- General Settings ---
+      # Notice that keys with dots in them must be quoted.
+      general = {
+        "gaps_in" = 5;
+        "gaps_out" = 10;
+        border_size = 2;
+        "col.active_border" = "rgba(33ccffee) rgba(00ff99ee) 45deg";
+        "col.inactive_border" = "rgba(595959aa)";
+        layout = "dwindle";
+      };
+
+      # Add other Hyprland sections here as needed...
+      # decoration = { ... };
+      # animations = { ... };
+      # dwindle = { ... };
+      # master = { ... };
+    };
   };
 
-  # Ensure necessary programs are available in the user's PATH.
+  # Your packages list remains the same.
   home.packages = with pkgs; [
     kitty
     waybar
