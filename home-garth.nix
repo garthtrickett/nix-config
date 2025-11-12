@@ -3,21 +3,26 @@
 
 {
   # -------------------------------------------------------------------
+  # 🏠 HOME MANAGER BASE CONFIGURATION (The Definitive Fix)
+  # -------------------------------------------------------------------
+  # This is the foundational switch that enables all graphical session
+  # services. It MUST be enabled for options like 'xsession' to work.
+  targets.generic-graphical.enable = true;
+
+  # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
-  # Enables the Polkit agent for authentication in graphical sessions.
+  # This now works correctly because the generic-graphical target is enabled.
   services.polkit-gnome.enable = true;
 
   # -------------------------------------------------------------------
-  # ✨ XSESSION & SCALING FOR XWAYLAND APPS (The Fix)
+  # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
-  # We must enable the xsession module to unlock the xresources options.
+  # This also now works correctly because the generic-graphical target is enabled.
   xsession.enable = true;
-
-  # This sets the DPI for older XWayland applications so their fonts scale correctly.
   xresources.settings = {
-    "Xft.dpi" = 192; # 96 DPI * 2 = 192 (for 200% scaling)
-    "Xcursor.size" = 48; # Scales the mouse cursor in these apps.
+    "Xft.dpi" = 192;
+    "Xcursor.size" = 48;
   };
 
   # -------------------------------------------------------------------
@@ -26,31 +31,17 @@
   wayland.windowManager.hyprland = {
     enable = true;
     settings = {
-      # --- Monitors ---
-      # Set scale to '2' for 200% scaling on HiDPI/Retina display.
-      monitor = [
-        ",preferred,auto,2"
-      ];
-
-      # --- Startup Applications ---
-      "exec-once" = [
-        "${pkgs.kitty}/bin/kitty"
-      ];
-
-      # --- Keybindings ---
+      monitor = [ ",preferred,auto,2" ];
+      "exec-once" = [ "${pkgs.kitty}/bin/kitty" ];
       bind = [
         "SUPER, 1, workspace, 1"
         "SUPER, Q, exec, killall Hyprland"
       ];
-
-      # --- Input Devices ---
       input = {
         kb_layout = "us";
         follow_mouse = 1;
         touchpad = { natural_scroll = true; };
       };
-
-      # --- General Settings ---
       general = {
         "gaps_in" = 5;
         "gaps_out" = 10;
@@ -65,13 +56,10 @@
   # -------------------------------------------------------------------
   # ✨ HiDPI & SCALING FOR NATIVE WAYLAND APPS
   # -------------------------------------------------------------------
-  # Set environment variables for modern GTK and Qt toolkits.
   home.sessionVariables = {
     GDK_SCALE = "2";
     QT_SCALE_FACTOR = "2";
   };
-  
-  # Ensure the GTK cursor theme also respects the scaled size.
   gtk.cursorTheme.size = 48;
 
   # -------------------------------------------------------------------
