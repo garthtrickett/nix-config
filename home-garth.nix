@@ -3,24 +3,17 @@
 
 {
   # -------------------------------------------------------------------
-  # 🏠 HOME MANAGER BASE CONFIGURATION (The Definitive Fix)
-  # -------------------------------------------------------------------
-  # This is the foundational switch that enables all graphical session
-  # services. It MUST be enabled for options like 'xsession' to work.
-  targets.generic-graphical.enable = true;
-
-  # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
-  # This now works correctly because the generic-graphical target is enabled.
   services.polkit-gnome.enable = true;
 
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
-  # This also now works correctly because the generic-graphical target is enabled.
+  # 'xsession.enable' is needed for the X resources to be loaded.
   xsession.enable = true;
-  xresources.settings = {
+  # The option is 'properties', not 'settings'. This is the fix.
+  xresources.properties = {
     "Xft.dpi" = 192;
     "Xcursor.size" = 48;
   };
