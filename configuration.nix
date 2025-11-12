@@ -4,14 +4,12 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./modules/battery-limiter.nix 
+    ./modules/battery-limiter.nix
   ];
 
   # -------------------------------------------------------------------
-  # ⚙️ NIX & CACHE CONFIGURATION - This is the correct system-wide location.
+  # ⚙️ NIX & CACHE CONFIGURATION
   # -------------------------------------------------------------------
-  # This tells Nix to download pre-built packages from the Cachix cache
-  # for Apple Silicon, which is critical for fast builds on 'unstable'.
   nix.settings = {
     extra-substituters = [
       "https://nixos-apple-silicon.cachix.org"
@@ -48,8 +46,6 @@
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
-
-  # This system-level module is required for Hyprland to launch correctly.
   programs.hyprland.enable = true;
 
   # -------------------------------------------------------------------
@@ -58,8 +54,22 @@
   hardware.asahi.peripheralFirmwareDirectory = ./firmware;
   networking.wireless.iwd = { enable = true; settings.General.EnableNetworkingConfiguration = true; };
   services.xserver.xkb.layout = "us";
-  services.xserver.xkb.options = "eurosign:e,caps:escape";
+  services.xserver.xkb.options = "eurosign:e";
   services.printing.enable = true;
+
+  # -------------------------------------------------------------------
+  # ⌨️ ADVANCED KEY REMAPPING (CAPS to ESC/CTRL)
+  # -------------------------------------------------------------------
+  # --- THIS IS THE FINAL, CORRECT FIX ---
+  # The 'extraConfig' option should ONLY contain the key definitions,
+  # not the '[main]' header, which is handled by the NixOS module.
+  services.keyd = {
+    enable = true;
+    keyboards."default" = {
+      ids = [ "*" ];
+      extraConfig = "capslock = overload(esc, control)";
+    };
+  };
 
   # -------------------------------------------------------------------
   # 🔊 AUDIO CONFIGURATION
@@ -75,7 +85,6 @@
   # -------------------------------------------------------------------
   # 🔋 BATTERY LONGEVITY CONFIGURATION
   # -------------------------------------------------------------------
-  # This uses the custom module we created in ./modules/battery-limiter.nix
   services.battery-limiter = {
     enable = true;
     threshold = 80;
@@ -86,7 +95,8 @@
   # -------------------------------------------------------------------
   users.users.garth = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager"];
+    # User added to "keyd" group to resolve permissions.
+    extraGroups = [ "wheel" "networkmanager" "keyd" ];
     shell = pkgs.bash;
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
   };

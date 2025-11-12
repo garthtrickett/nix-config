@@ -33,7 +33,11 @@
       input = {
         kb_layout = "us";
         follow_mouse = 1;
-        touchpad = { natural_scroll = true; };
+        kb_options = "caps:none";
+        touchpad = {
+            natural_scroll = true;
+            disable_while_typing = true;
+           };
       };
       general = {
         "gaps_in" = 5;
