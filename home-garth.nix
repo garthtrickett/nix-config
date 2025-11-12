@@ -5,7 +5,20 @@
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
+  # Enables the Polkit agent for authentication in graphical sessions.
   services.polkit-gnome.enable = true;
+
+  # -------------------------------------------------------------------
+  # ✨ XSESSION & SCALING FOR XWAYLAND APPS (The Fix)
+  # -------------------------------------------------------------------
+  # We must enable the xsession module to unlock the xresources options.
+  xsession.enable = true;
+
+  # This sets the DPI for older XWayland applications so their fonts scale correctly.
+  xresources.settings = {
+    "Xft.dpi" = 192; # 96 DPI * 2 = 192 (for 200% scaling)
+    "Xcursor.size" = 48; # Scales the mouse cursor in these apps.
+  };
 
   # -------------------------------------------------------------------
   # 🖥️ HYPRLAND WINDOW MANAGER
@@ -14,8 +27,7 @@
     enable = true;
     settings = {
       # --- Monitors ---
-      # This is the primary fix for Hyprland itself.
-      # We change the scale from '1' to '2' for 200% scaling.
+      # Set scale to '2' for 200% scaling on HiDPI/Retina display.
       monitor = [
         ",preferred,auto,2"
       ];
@@ -51,29 +63,19 @@
   };
 
   # -------------------------------------------------------------------
-  # ✨ HiDPI & SCALING CONFIGURATION (The Comprehensive Fix)
+  # ✨ HiDPI & SCALING FOR NATIVE WAYLAND APPS
   # -------------------------------------------------------------------
-  # This section ensures that all applications, not just Hyprland,
-  # are scaled correctly on your high-resolution display.
-
-  # Set environment variables for GTK and Qt applications.
+  # Set environment variables for modern GTK and Qt toolkits.
   home.sessionVariables = {
     GDK_SCALE = "2";
     QT_SCALE_FACTOR = "2";
-  };
-
-  # Set XDG settings for font DPI and cursor size.
-  # This helps scale fonts and legacy XWayland applications.
-  xresources.settings = {
-    "Xft.dpi" = 192; # Standard DPI is 96, so 96*2 = 192 for 200% scaling.
-    "Xcursor.size" = 48;
   };
   
   # Ensure the GTK cursor theme also respects the scaled size.
   gtk.cursorTheme.size = 48;
 
   # -------------------------------------------------------------------
-  # 📦 USER PACKAGES
+  # 📝 HELIX TEXT EDITOR
   # -------------------------------------------------------------------
   programs.helix = {
     enable = true;
@@ -86,6 +88,9 @@
     };
   };
 
+  # -------------------------------------------------------------------
+  # 📦 USER PACKAGES
+  # -------------------------------------------------------------------
   home.packages = with pkgs; [
     kitty
     waybar

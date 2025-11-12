@@ -1,3 +1,4 @@
+# /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
 {
@@ -6,8 +7,19 @@
     ./modules/battery-limiter.nix 
   ];
 
-  # The cache settings have been moved to flake.nix for a cleaner and
-  # more effective setup. No settings are needed here.
+  # -------------------------------------------------------------------
+  # ⚙️ NIX & CACHE CONFIGURATION - This is the correct system-wide location.
+  # -------------------------------------------------------------------
+  # This tells Nix to download pre-built packages from the Cachix cache
+  # for Apple Silicon, which is critical for fast builds on 'unstable'.
+  nix.settings = {
+    extra-substituters = [
+      "https://nixos-apple-silicon.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "nixos-apple-silicon.cachix.org-1:8psDu5SA5dAD7qA0zMy5UT292TxeEPzIz8VVEr2Js20="
+    ];
+  };
 
   # -------------------------------------------------------------------
   # ⚙️ GENERAL SYSTEM SETTINGS
@@ -36,6 +48,8 @@
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
+
+  # This system-level module is required for Hyprland to launch correctly.
   programs.hyprland.enable = true;
 
   # -------------------------------------------------------------------
@@ -59,6 +73,15 @@
   services.libinput.enable = true;
 
   # -------------------------------------------------------------------
+  # 🔋 BATTERY LONGEVITY CONFIGURATION
+  # -------------------------------------------------------------------
+  # This uses the custom module we created in ./modules/battery-limiter.nix
+  services.battery-limiter = {
+    enable = true;
+    threshold = 80;
+  };
+
+  # -------------------------------------------------------------------
   # 👤 USER CONFIGURATION
   # -------------------------------------------------------------------
   users.users.garth = {
@@ -75,16 +98,6 @@
   home-manager.users.garth = {
     imports = [ ./home-garth.nix ];
     home.stateVersion = "25.11";
-  };
-
-
-# -------------------------------------------------------------------
-  # 🔋 BATTERY LONGEVITY CONFIGURATION
-  # -------------------------------------------------------------------
-  # This uses the custom module we created in ./modules/battery-limiter.nix
-  services.battery-limiter = {
-    enable = true;
-    threshold = 80; # This is optional, as 80 is the default.
   };
 
   # -------------------------------------------------------------------
