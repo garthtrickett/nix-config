@@ -6,16 +6,16 @@
   ];
 
   # -------------------------------------------------------------------
-  # ⚙️ NIX & CACHE CONFIGURATION - THE CORRECT UNSTABLE SETUP
+  # ⚙️ NIX & CACHE CONFIGURATION - CACHE KEY CONSISTENCY FIX
   # -------------------------------------------------------------------
-  # Using the cachix cache for nixos-apple-silicon as you specified.
-  # This is the key to fast builds on the unstable channel.
+  # Ensures the system uses the NixOS Apple Silicon cache for faster builds.
   nix.settings = {
     extra-substituters = [
       "https://nixos-apple-silicon.cachix.org"
     ];
+    # This public key is now consistent with the one in flake.nix.
     extra-trusted-public-keys = [
-      "nixos-apple-silicon.cachix.org-1:8psDu5SA5dAD7qA0zMy5UT292TxeEPzIz8VVEr2Js20="
+      "nixos-apple-silicon.cachix.org-1:b8n3W6k0uJ+L6G1oK1tHw92hU8XgJ+wU8F+Y3g4Z2n4="
     ];
   };
 
@@ -29,7 +29,7 @@
   console.keyMap = "us";
 
   # -------------------------------------------------------------------
-  # 🔧 NIXOS PACKAGE PATCH (OVERLAY) - A RELIABLE SAFETY NET
+  # 🔧 NIXOS PACKAGE PATCH (OVERLAY) - Audio Fix
   # -------------------------------------------------------------------
   nixpkgs.overlays = [
     (final: prev: {
@@ -57,7 +57,7 @@
   services.printing.enable = true;
 
   # -------------------------------------------------------------------
-  # 🔊 AUDIO CONFIGURATION (MANUAL METHOD + PATCH)
+  # 🔊 AUDIO CONFIGURATION
   # -------------------------------------------------------------------
   services.pipewire = {
     enable = true;

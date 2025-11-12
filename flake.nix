@@ -14,18 +14,17 @@
     };
   };
 
-  # --- CACHIX CONFIGURATION BLOCK ---
+  # --- CACHIX CONFIGURATION BLOCK (Used during 'nixos-rebuild') ---
   nixConfig = {
     # Allows Nix to apply these settings without requiring interactive confirmation
     accept-flake-config = true;
 
     # Adds the NixOS Apple Silicon community cache as a binary substituter.
-    # This prevents you from having to compile the Asahi kernel and drivers locally.
     extra-substituters = [
       "https://nixos-apple-silicon.cachix.org"
     ];
 
-    # Adds the required public key to verify the integrity of the binaries downloaded from the cache.
+    # Adds the required public key to verify the integrity of the binaries.
     extra-trusted-public-keys = [
       "nixos-apple-silicon.cachix.org-1:b8n3W6k0uJ+L6G1oK1tHw92hU8XgJ+wU8F+Y3g4Z2n4="
     ];
