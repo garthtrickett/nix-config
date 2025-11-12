@@ -5,19 +5,8 @@
     ./hardware-configuration.nix
   ];
 
-  # -------------------------------------------------------------------
-  # ⚙️ NIX & CACHE CONFIGURATION - CACHE KEY CONSISTENCY FIX
-  # -------------------------------------------------------------------
-  # Ensures the system uses the NixOS Apple Silicon cache for faster builds.
-  nix.settings = {
-    extra-substituters = [
-      "https://nixos-apple-silicon.cachix.org"
-    ];
-    # This public key is now consistent with the one in flake.nix.
-    extra-trusted-public-keys = [
-      "nixos-apple-silicon.cachix.org-1:b8n3W6k0uJ+L6G1oK1tHw92hU8XgJ+wU8F+Y3g4Z2n4="
-    ];
-  };
+  # The cache settings have been moved to flake.nix for a cleaner and
+  # more effective setup. No settings are needed here.
 
   # -------------------------------------------------------------------
   # ⚙️ GENERAL SYSTEM SETTINGS
@@ -83,7 +72,7 @@
   # -------------------------------------------------------------------
   home-manager.users.garth = {
     imports = [ ./home-garth.nix ];
-    home.stateVersion = "25.11"; # Match the unstable branch
+    home.stateVersion = "25.11";
   };
 
   # -------------------------------------------------------------------
@@ -94,5 +83,5 @@
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };
   services.openssh.enable = true;
-  system.stateVersion = "25.11"; # Match the unstable branch
+  system.stateVersion = "25.11";
 }
