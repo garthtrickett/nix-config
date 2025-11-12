@@ -34,10 +34,15 @@
   console.keyMap = "us";
 
   # -------------------------------------------------------------------
-  # 🔧 NIXOS PACKAGE PATCH (OVERLAY) - Audio Fix
+  # 🔧 NIXOS PACKAGE PATCH (OVERLAY)
   # -------------------------------------------------------------------
   nixpkgs.overlays = [
+    # This overlay defines our custom packages.
     (final: prev: {
+      # REMOVED: The custom packages for python-libinput and trackpad-is-too-damn-big
+      # have been deleted from this overlay.
+
+      # Overlay for the audio fix
       asahi-audio = prev.asahi-audio.override {
         triforce-lv2 = prev.triforce-lv2;
       };
@@ -52,7 +57,7 @@
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
   programs.hyprland.enable = true;
-
+  
   # -------------------------------------------------------------------
   # 🍎 APPLE SILICON & CORE SERVICES
   # -------------------------------------------------------------------
@@ -65,19 +70,18 @@
   # -------------------------------------------------------------------
   # ⌨️ KEY REMAPPING DAEMON (keyd)
   # -------------------------------------------------------------------
-  # This robustly handles the Caps Lock to Control/Escape mapping.
   services.keyd = {
     enable = true;
     keyboards."default" = {
-      ids = [ "*" ]; # Apply to all keyboards
-      settings = {
-        main = {
-          # Make capslock behave as control when held, and escape when tapped.
-          capslock = "overload(control, escape)";
-        };
-      };
+      ids = [ "*" ];
+      settings.main = { capslock = "overload(control, escape)"; };
     };
   };
+
+  # -------------------------------------------------------------------
+  # ✨ TRACKPAD DISABLING SERVICE (REMOVED)
+  # -------------------------------------------------------------------
+  # The systemd.services.trackpad-blocker service has been completely removed.
 
   # -------------------------------------------------------------------
   # ⚙️ YDOTOOL SYSTEM SERVICE
@@ -98,7 +102,7 @@
   };
 
   # -------------------------------------------------------------------
-  # 🔊 AUDIO CONFIGURATION
+  # 🔊 AUDIO CONFIGURATION, 🔋 BATTERY, 👤 USER CONFIGURATION, etc.
   # -------------------------------------------------------------------
   services.pipewire = {
     enable = true;
@@ -108,19 +112,12 @@
   security.rtkit.enable = true;
   services.libinput.enable = true;
 
-  # -------------------------------------------------------------------
-  # 🔋 BATTERY LONGEVITY CONFIGURATION
-  # -------------------------------------------------------------------
   services.battery-limiter = {
     enable = true;
     threshold = 80;
   };
 
-  # -------------------------------------------------------------------
-  # 👤 USER CONFIGURATION
-  # -------------------------------------------------------------------
   users.groups.input = {};
-
   users.users.garth = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
@@ -133,17 +130,11 @@
     KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
-  # -------------------------------------------------------------------
-  # 🏡 HOME MANAGER CONFIGURATION for 'garth'
-  # -------------------------------------------------------------------
   home-manager.users.garth = {
     imports = [ ./home-garth.nix ];
     home.stateVersion = "25.11";
   };
 
-  # -------------------------------------------------------------------
-  # 📦 SYSTEM PACKAGES AND SERVICES
-  # -------------------------------------------------------------------
   environment.systemPackages = with pkgs; [ git vim wget keyd ];
   programs.firefox.enable = true;
   programs.mtr.enable = true;

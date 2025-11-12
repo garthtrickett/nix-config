@@ -35,4 +35,13 @@ echo "############################################################" >> "$OUTPUT_
 echo "" >> "$OUTPUT_FILE"
 cat home-garth.nix >> "$OUTPUT_FILE"
 
+# --- Add GEMINI.md ---
+echo "############################################################" >> "$OUTPUT_FILE"
+echo "##########          START gemini.md               ##########" >> "$OUTPUT_FILE"
+echo "############################################################" >> "$OUTPUT_FILE"
+echo "" >> "$OUTPUT_FILE"
+cat GEMINI.md >> "$OUTPUT_FILE"
+echo "" >> "$OUTPUT_FILE"
+echo "" >> "$OUTPUT_FILE"
+
 echo "Done! Your configuration has been copied to $OUTPUT_FILE"

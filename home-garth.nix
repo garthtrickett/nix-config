@@ -46,7 +46,7 @@
         touchpad = {
             natural_scroll = false;
             disable_while_typing = true;
-            tap-to-click = true;
+            tap-to-click = false;
            };
       };
       general = {
