@@ -36,6 +36,7 @@
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
+  programs.hyprland.enable = true;
 
   # -------------------------------------------------------------------
   # 🍎 APPLE SILICON & CORE SERVICES
