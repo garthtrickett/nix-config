@@ -1,3 +1,7 @@
+############################################################
+##########         START home-garth.nix           ##########
+############################################################
+
 # /etc/nixos/home-garth.nix
 { config, pkgs, ... }:
 
@@ -10,9 +14,7 @@
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
-  # 'xsession.enable' is needed for the X resources to be loaded.
   xsession.enable = true;
-  # The option is 'properties', not 'settings'. This is the fix.
   xresources.properties = {
     "Xft.dpi" = 192;
     "Xcursor.size" = 48;
@@ -26,17 +28,25 @@
     settings = {
       monitor = [ ",preferred,auto,2" ];
       "exec-once" = [ "${pkgs.kitty}/bin/kitty" ];
+
+      # ydotool is still needed for the socket, but we remove the bindr.
+      env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
+
       bind = [
         "SUPER, 1, workspace, 1"
         "SUPER, Q, exec, killall Hyprland"
       ];
+
+      # REMOVED: The bindr and kb_options for caps lock are no longer needed.
+      # keyd will now handle this globally.
+
       input = {
         kb_layout = "us";
         follow_mouse = 1;
-        kb_options = "caps:none";
         touchpad = {
-            natural_scroll = true;
+            natural_scroll = false;
             disable_while_typing = true;
+            tap-to-click = true;
            };
       };
       general = {
@@ -77,6 +87,7 @@
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs; [
+    gh
     kitty
     waybar
     wofi
@@ -85,5 +96,6 @@
     brightnessctl
     wl-clipboard
     xdg-user-dirs
+    ydotool
   ];
 }

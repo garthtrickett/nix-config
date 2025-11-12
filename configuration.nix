@@ -1,3 +1,7 @@
+############################################################
+##########       START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -22,6 +26,7 @@
   # -------------------------------------------------------------------
   # ⚙️ GENERAL SYSTEM SETTINGS
   # -------------------------------------------------------------------
+  boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
   time.timeZone = "Australia/Sydney";
@@ -58,16 +63,37 @@
   services.printing.enable = true;
 
   # -------------------------------------------------------------------
-  # ⌨️ ADVANCED KEY REMAPPING (CAPS to ESC/CTRL)
+  # ⌨️ KEY REMAPPING DAEMON (keyd)
   # -------------------------------------------------------------------
-  # --- THIS IS THE FINAL, CORRECT FIX ---
-  # The 'extraConfig' option should ONLY contain the key definitions,
-  # not the '[main]' header, which is handled by the NixOS module.
+  # This robustly handles the Caps Lock to Control/Escape mapping.
   services.keyd = {
     enable = true;
     keyboards."default" = {
-      ids = [ "*" ];
-      extraConfig = "capslock = overload(esc, control)";
+      ids = [ "*" ]; # Apply to all keyboards
+      settings = {
+        main = {
+          # Make capslock behave as control when held, and escape when tapped.
+          capslock = "overload(control, escape)";
+        };
+      };
+    };
+  };
+
+  # -------------------------------------------------------------------
+  # ⚙️ YDOTOOL SYSTEM SERVICE
+  # -------------------------------------------------------------------
+  systemd.services.ydotoold = {
+    description = "ydotool daemon";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];
+    serviceConfig = {
+      Restart = "always";
+      ExecStart = ''
+        ${pkgs.ydotool}/bin/ydotoold \
+          --socket-path=/run/ydotoold.sock \
+          --socket-own=${config.users.users.garth.name}:${config.users.groups.input.name} \
+          --socket-mode=0660
+      '';
     };
   };
 
@@ -93,14 +119,19 @@
   # -------------------------------------------------------------------
   # 👤 USER CONFIGURATION
   # -------------------------------------------------------------------
+  users.groups.input = {};
+
   users.users.garth = {
     isNormalUser = true;
-    # User added to "keyd" group to resolve permissions.
-    extraGroups = [ "wheel" "networkmanager" "keyd" ];
+    extraGroups = [ "wheel" "networkmanager" "input" ];
     shell = pkgs.bash;
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
+
+  services.udev.extraRules = ''
+    KERNEL=="uinput", GROUP="input", MODE="0660"
+  '';
 
   # -------------------------------------------------------------------
   # 🏡 HOME MANAGER CONFIGURATION for 'garth'
@@ -113,7 +144,7 @@
   # -------------------------------------------------------------------
   # 📦 SYSTEM PACKAGES AND SERVICES
   # -------------------------------------------------------------------
-  environment.systemPackages = with pkgs; [ git vim wget ];
+  environment.systemPackages = with pkgs; [ git vim wget keyd ];
   programs.firefox.enable = true;
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };
