@@ -3,46 +3,28 @@
 
 {
   # -------------------------------------------------------------------
-  # 🔑 SESSION SERVICES - THE CRITICAL FIX
+  # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
-  # Enable the Polkit agent. This is the "butler" that allows your
-  # Hyprland session to perform privileged actions. Without this,
-  # the login process can fail with an "auth error".
+  # Enables the Polkit agent for authentication in graphical sessions.
   services.polkit-gnome.enable = true;
 
   # -------------------------------------------------------------------
-  #  HYPRLAND CONFIGURATION
+  # 🖥️ HYPRLAND WINDOW MANAGER
   # -------------------------------------------------------------------
   wayland.windowManager.hyprland = {
     enable = true;
-    
     settings = {
-      # --- Monitors ---
-      monitor = [
-        ",preferred,auto,1"
-      ];
-
-      # --- Startup Applications ---
-      "exec-once" = [
-        "${pkgs.kitty}/bin/kitty"
-      ];
-
-      # --- Keybindings ---
+      monitor = [ ",preferred,auto,1" ];
+      "exec-once" = [ "${pkgs.kitty}/bin/kitty" ];
       bind = [
         "SUPER, 1, workspace, 1"
         "SUPER, Q, exec, killall Hyprland"
       ];
-
-      # --- Input Devices ---
       input = {
         kb_layout = "us";
         follow_mouse = 1;
-        touchpad = {
-          natural_scroll = true;
-        };
+        touchpad = { natural_scroll = true; };
       };
-
-      # --- General Settings ---
       general = {
         "gaps_in" = 5;
         "gaps_out" = 10;
@@ -55,9 +37,33 @@
   };
 
   # -------------------------------------------------------------------
-  # USER PACKAGES
+  # 📝 HELIX TEXT EDITOR - NEWLY ADDED
   # -------------------------------------------------------------------
+  # This enables the Helix editor and manages its configuration.
+  programs.helix = {
+    enable = true;
+    
+    # You can define your Helix 'config.toml' settings here.
+    # For example, to set the theme to 'catppuccin_macchiato':
+    settings = {
+      theme = "catppuccin_macchiato";
+      editor = {
+        line-number = "relative";
+        cursorline = true;
+      };
+    };
+    
+    # You can also add extra packages for language servers, etc.
+    # extraPackages = with pkgs; [ rust-analyzer ];
+  };
+
+  # -------------------------------------------------------------------
+  # 📦 USER PACKAGES
+  # -------------------------------------------------------------------
+  # These packages are installed directly into the user's profile.
   home.packages = with pkgs; [
+    # Note: We don't need 'helix' here because 'programs.helix.enable'
+    #       installs it for us automatically.
     kitty
     waybar
     wofi
