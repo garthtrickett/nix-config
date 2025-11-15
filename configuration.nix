@@ -1,3 +1,7 @@
+############################################################
+##########       START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -31,29 +35,16 @@
   console.keyMap = "us";
 
   # -------------------------------------------------------------------
-  # 🔧 NIXOS PACKAGE PATCH (OVERLAY)
-  # -------------------------------------------------------------------
-  nixpkgs.overlays = [
-    (final: prev: {
-      asahi-audio = prev.asahi-audio.override {
-        triforce-lv2 = prev.triforce-lv2;
-      };
-    })
-  ];
-
-  # -------------------------------------------------------------------
   # 🖥️ GRAPHICAL ENVIRONMENT (HYPRLAND & GNOME)
   # -------------------------------------------------------------------
   services.xserver.enable = true;
   services.desktopManager.gnome.enable = true;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
-  programs.hyprland.enable = true;
 
   # -------------------------------------------------------------------
-  # 🎨 XDG DESKTOP PORTAL CONFIGURATION (FIX)
+  # 🎨 XDG DESKTOP PORTAL CONFIGURATION
   # -------------------------------------------------------------------
-  # This is crucial for Wayland applications (like Waybar) to function correctly.
   xdg.portal = {
     enable = true;
     extraPortals = [
@@ -101,7 +92,7 @@
   };
 
   # -------------------------------------------------------------------
-  # 🔊 AUDIO CONFIGURATION, 🔋 BATTERY, 👤 USER CONFIGURATION, etc.
+  # 🔊 AUDIO, 🔋 BATTERY, 👤 USER
   # -------------------------------------------------------------------
   services.pipewire = {
     enable = true;
@@ -120,7 +111,7 @@
   users.users.garth = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
-    shell = pkgs.bash;
+    shell = pkgs.zsh; # MODIFIED: Shell is now Zsh
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
@@ -129,15 +120,11 @@
     KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
-  home-manager = {
-    backupFileExtension = "bak"; 
-    users.garth = {
-      imports = [ ./home-garth.nix ];
-      home.stateVersion = "25.11";
-    };
-  };
-
+  # -------------------------------------------------------------------
+  # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
+  # -------------------------------------------------------------------
   environment.systemPackages = with pkgs; [ git vim wget keyd ];
+  programs.zsh.enable = true; # MODIFIED: Added for shell compatibility
   programs.firefox.enable = true;
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };

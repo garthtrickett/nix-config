@@ -15,18 +15,46 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # REMOVED: Input for the trackpad utility
+    zen-browser = {
+      url = "github:0xc000022070/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, apple-silicon, ... }: {
+  outputs = { self, nixpkgs, home-manager, apple-silicon, zen-browser, ... }@inputs:
+  let
+    system = "aarch64-linux";
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [
+        (final: prev: {
+           asahi-audio = prev.asahi-audio.override {
+             triforce-lv2 = prev.triforce-lv2;
+           };
+        })
+      ];
+    };
+  in
+  {
     nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      system = "aarch64-linux";
-      # REMOVED: No longer passing the trackpad source
-      specialArgs = { };
+      inherit system;
+      specialArgs = { inherit inputs; };
+
       modules = [
+        { nixpkgs.pkgs = pkgs; }
+
         apple-silicon.nixosModules.apple-silicon-support
         ./configuration.nix
+
         home-manager.nixosModules.home-manager
+        {
+          home-manager.extraSpecialArgs = { inherit inputs; };
+          home-manager.useGlobalPkgs = true;
+          home-manager.users.garth = {
+            imports = [ ./home-garth.nix ];
+            home.stateVersion = "25.11";
+          };
+        }
       ];
     };
   };

@@ -1,10 +1,16 @@
-{ config, pkgs, lib, ... }:
+############################################################
+##########         START home-garth.nix           ##########
+############################################################
+
+# MODIFIED: Accepts 'inputs' to get the zen-browser package
+{ config, pkgs, lib, inputs, ... }:
 
 {
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
+
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
@@ -13,6 +19,7 @@
     "Xft.dpi" = 192;
     "Xcursor.size" = 48;
   };
+
   # -------------------------------------------------------------------
   # 🖥️ HYPRLAND WINDOW MANAGER
   # -------------------------------------------------------------------
@@ -21,17 +28,29 @@
     settings = {
       monitor = [ ",preferred,auto,2" ];
       
-      # FIX: Waybar is no longer started here.
-      # It will be managed by its own systemd user service.
       "exec-once" = [ 
-        "alacritty"
+        "alacritty -e zellij"
       ];
       "exec" = [
       ];
       
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
+      # MODIFIED: Added new keybindings for volume, brightness, and closing windows
       bind = [
         "SUPER, R, exec, ~/.config/hypr/scripts/rebuild"
+        "SUPER_SHIFT, Q, killactive,"
+
+        "SUPER, H, movefocus, l"
+        "SUPER, L, movefocus, r"
+
+        # Volume control
+        "SUPER, P, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
+        "SUPER, O, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+
+        # Brightness control
+        "SUPER, U, exec, brightnessctl set 5%-"
+        "SUPER, I, exec, brightnessctl set 5%+"
+
         "SUPER, 1, workspace, 1"
         "SUPER, 2, workspace, 2"
         "SUPER, 3, workspace, 3"
@@ -41,7 +60,15 @@
         "SUPER, 7, workspace, 7"
         "SUPER, 8, workspace, 8"
         "SUPER, 9, workspace, 9"
-        "SUPER, Q, exec, killall Hyprland"
+        "SUPER_SHIFT, 1, movetoworkspace, 1"
+        "SUPER_SHIFT, 2, movetoworkspace, 2"
+        "SUPER_SHIFT, 3, movetoworkspace, 3"
+        "SUPER_SHIFT, 4, movetoworkspace, 4"
+        "SUPER_SHIFT, 5, movetoworkspace, 5"
+        "SUPER_SHIFT, 6, movetoworkspace, 6"
+        "SUPER_SHIFT, 7, movetoworkspace, 7"
+        "SUPER_SHIFT, 8, movetoworkspace, 8"
+        "SUPER_SHIFT, 9, movetoworkspace, 9"
       ];
       input = {
         kb_layout = "us";
@@ -64,28 +91,19 @@
   };
   
   # -------------------------------------------------------------------
-  # 🚀 HOME MANAGER ACTIVATION HOOKS (REMOVED)
+  # 📊 WAYBAR SYSTEMD USER SERVICE (Robust Method)
   # -------------------------------------------------------------------
-  # The unreliable activation script has been completely removed.
-  
-  # -------------------------------------------------------------------
-  # 📊 WAYBAR SYSTEMD USER SERVICE (NEW)
-  # -------------------------------------------------------------------
-  # This is the new, robust way to manage Waybar.
   systemd.user.services.waybar = {
     Unit = {
       Description = "Waybar";
       PartOf = [ "graphical-session.target" ];
     };
     Service = {
-      # Use the waybar package defined by programs.waybar
       ExecStart = "${pkgs.waybar}/bin/waybar";
-      # Automatically restart the service if it fails
       Restart = "always";
       RestartSec = 3;
     };
     Install = {
-      # Start the service as part of the graphical session
       WantedBy = [ "graphical-session.target" ];
     };
   };
@@ -93,7 +111,6 @@
   # -------------------------------------------------------------------
   # 📊 WAYBAR CONFIGURATION
   # -------------------------------------------------------------------
-  # This block remains to configure the appearance and modules of Waybar.
   programs.waybar = {
     enable = true;
     style = ''
@@ -141,31 +158,19 @@
         };
 
         clock = {
-          format = " (%H:%M)";
-          tooltip-format = "<big>(%Y %B)</big>\n<small>(%A, %d)</small>";
+          # This format is from your working config
+          format = " {0:%H:%M}";
+          tooltip-format = "<big>{0:%Y %B}</big>\n<small>{0:%A, %d}</small>";
         };
 
-        cpu = {
-          interval = 10;
-          format = " {usage}%";
-          tooltip = false;
-        };
-
-        memory = {
-          interval = 10;
-          format = " {percentage}%";
-          
-        };
+        cpu = { interval = 10; format = " {usage}%"; tooltip = false; };
+        memory = { interval = 10; format = " {percentage}%"; };
 
         battery = {
           format = "{icon} {capacity}%";
           format-charging = " {capacity}%";
           format-icons = [ "" "" "" "" "" ];
-          states = {
-            good = 90;
-            warning = 30;
-            critical = 15;
-          };
+          states = { good = 90; warning = 30; critical = 15; };
         };
 
         network = {
@@ -178,13 +183,11 @@
       };
     };
   };
+
   # -------------------------------------------------------------------
   # ✨ HiDPI & SCALING FOR NATIVE WAYLAND APPS
   # -------------------------------------------------------------------
-  home.sessionVariables = {
-    GDK_SCALE = "2";
-    QT_SCALE_FACTOR = "2";
-  };
+  home.sessionVariables = { GDK_SCALE = "2"; QT_SCALE_FACTOR = "2"; };
   gtk.cursorTheme.size = 48;
 
   # -------------------------------------------------------------------
@@ -194,19 +197,29 @@
     enable = true;
     settings = {
       theme = "catppuccin_macchiato";
-      editor = {
-        line-number = "relative";
-        cursorline = true;
-      };
+      editor = { line-number = "relative"; cursorline = true; };
     };
   };
+
+  # -------------------------------------------------------------------
+  # 🐚 ZSH SHELL CONFIGURATION (NEW)
+  # -------------------------------------------------------------------
+  programs.zsh = {
+    enable = true;
+    enableAutosuggestions = true;
+    enableSyntaxHighlighting = true;
+  };
+
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs;
   [
+    # MODIFIED: Added new packages
+    (inputs.zen-browser.packages.${pkgs.system}.default)
     gh
     alacritty
+    zellij
     wofi
     swaylock
     swayidle
