@@ -1,7 +1,3 @@
-############################################################
-##########       START configuration.nix          ##########
-############################################################
-
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -15,6 +11,7 @@
   # ⚙️ NIX & CACHE CONFIGURATION
   # -------------------------------------------------------------------
   nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
     extra-substituters = [
       "https://nixos-apple-silicon.cachix.org"
     ];
@@ -37,12 +34,7 @@
   # 🔧 NIXOS PACKAGE PATCH (OVERLAY)
   # -------------------------------------------------------------------
   nixpkgs.overlays = [
-    # This overlay defines our custom packages.
     (final: prev: {
-      # REMOVED: The custom packages for python-libinput and trackpad-is-too-damn-big
-      # have been deleted from this overlay.
-
-      # Overlay for the audio fix
       asahi-audio = prev.asahi-audio.override {
         triforce-lv2 = prev.triforce-lv2;
       };
@@ -57,7 +49,19 @@
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
   programs.hyprland.enable = true;
-  
+
+  # -------------------------------------------------------------------
+  # 🎨 XDG DESKTOP PORTAL CONFIGURATION (FIX)
+  # -------------------------------------------------------------------
+  # This is crucial for Wayland applications (like Waybar) to function correctly.
+  xdg.portal = {
+    enable = true;
+    extraPortals = [
+      pkgs.xdg-desktop-portal-hyprland
+      pkgs.xdg-desktop-portal-gtk
+    ];
+  };
+
   # -------------------------------------------------------------------
   # 🍎 APPLE SILICON & CORE SERVICES
   # -------------------------------------------------------------------
@@ -77,11 +81,6 @@
       settings.main = { capslock = "overload(control, escape)"; };
     };
   };
-
-  # -------------------------------------------------------------------
-  # ✨ TRACKPAD DISABLING SERVICE (REMOVED)
-  # -------------------------------------------------------------------
-  # The systemd.services.trackpad-blocker service has been completely removed.
 
   # -------------------------------------------------------------------
   # ⚙️ YDOTOOL SYSTEM SERVICE
@@ -131,10 +130,7 @@
   '';
 
   home-manager = {
-    # FIX: Add backup file extension here to resolve 'clobbered' error for Waybar config files,
-    # and avoid the 'home-manager.users.garth.home-manager' option does not exist error.
     backupFileExtension = "bak"; 
-
     users.garth = {
       imports = [ ./home-garth.nix ];
       home.stateVersion = "25.11";

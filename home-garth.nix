@@ -1,8 +1,4 @@
-############################################################
-##########         START home-garth.nix           ##########
-############################################################
-
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   # -------------------------------------------------------------------
@@ -25,22 +21,17 @@
     settings = {
       monitor = [ ",preferred,auto,2" ];
       
-      # V V V THIS IS THE FIX V V V
-      # We just need to execute 'waybar'. Home Manager ensures that the
-      # configuration is placed where Waybar can find it by default.
+      # FIX: Waybar is no longer started here.
+      # It will be managed by its own systemd user service.
       "exec-once" = [ 
-        "alacritty" # <-- Launch Alacritty
-        "waybar"    # <-- Launch Waybar
+        "alacritty"
+      ];
+      "exec" = [
       ];
       
-      # ydotool is still needed for the socket, but we remove the bindr.
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
-      # UPDATED: Keybindings
       bind = [
-        # New binding for system rebuild
         "SUPER, R, exec, ~/.config/hypr/scripts/rebuild"
-
-        # Workspace switching (Command + 1 through 9)
         "SUPER, 1, workspace, 1"
         "SUPER, 2, workspace, 2"
         "SUPER, 3, workspace, 3"
@@ -50,8 +41,6 @@
         "SUPER, 7, workspace, 7"
         "SUPER, 8, workspace, 8"
         "SUPER, 9, workspace, 9"
-        
-        # Existing kill binding
         "SUPER, Q, exec, killall Hyprland"
       ];
       input = {
@@ -75,17 +64,44 @@
   };
   
   # -------------------------------------------------------------------
-  # 📊 WAYBAR STATUS BAR
+  # 🚀 HOME MANAGER ACTIVATION HOOKS (REMOVED)
   # -------------------------------------------------------------------
+  # The unreliable activation script has been completely removed.
+  
+  # -------------------------------------------------------------------
+  # 📊 WAYBAR SYSTEMD USER SERVICE (NEW)
+  # -------------------------------------------------------------------
+  # This is the new, robust way to manage Waybar.
+  systemd.user.services.waybar = {
+    Unit = {
+      Description = "Waybar";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      # Use the waybar package defined by programs.waybar
+      ExecStart = "${pkgs.waybar}/bin/waybar";
+      # Automatically restart the service if it fails
+      Restart = "always";
+      RestartSec = 3;
+    };
+    Install = {
+      # Start the service as part of the graphical session
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
+  # -------------------------------------------------------------------
+  # 📊 WAYBAR CONFIGURATION
+  # -------------------------------------------------------------------
+  # This block remains to configure the appearance and modules of Waybar.
   programs.waybar = {
     enable = true;
-    # Style the bar using CSS
     style = ''
       * {
         border: none;
         font-family: monospace;
         font-size: 13px;
-        color: #cad3f5;  /* <-- FIXED: Ensures text/icons are visible */
+        color: #cad3f5;
       }
       window#waybar {
         background: rgba(30, 30, 46, 0.7);
@@ -106,7 +122,6 @@
       }
     '';
     
-    # Configure the bar's modules and layout
     settings = {
       main-bar = { 
         layer = "top";
@@ -116,7 +131,6 @@
         modules-center = [ "cpu" "memory" ];
         modules-right = [ "network" "battery" "clock" ];
 
-        # Module-specific configurations
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = {
@@ -200,7 +214,7 @@
     wl-clipboard
     xdg-user-dirs
     ydotool
-    procps                        # ADDED: Includes 'killall'
-    nerd-fonts.fira-code          # CORRECTED: Installs 'nerd-fonts.fira-code' (renamed from 'fira-code-nerdfont')
+    procps
+    nerd-fonts.fira-code
   ];
 }
