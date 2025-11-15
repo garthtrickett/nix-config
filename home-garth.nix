@@ -27,15 +27,14 @@
     enable = true;
     settings = {
       monitor = [ ",preferred,auto,2" ];
-      
-      "exec-once" = [ 
+
+      "exec-once" = [
         "alacritty -e zellij"
       ];
       "exec" = [
       ];
-      
+
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
-      # MODIFIED: Added new keybindings for volume, brightness, and closing windows
       bind = [
         "SUPER, R, exec, ~/.config/hypr/scripts/rebuild"
         "SUPER_SHIFT, Q, killactive,"
@@ -89,7 +88,7 @@
       };
     };
   };
-  
+
   # -------------------------------------------------------------------
   # 📊 WAYBAR SYSTEMD USER SERVICE (Robust Method)
   # -------------------------------------------------------------------
@@ -132,21 +131,21 @@
         background: #89b4fa;
         color: #1e1e2e;
       }
-      #clock, #battery, #cpu, #memory, #network {
+      #clock, #battery, #cpu, #memory, #network, #pulseaudio, #backlight {
         padding: 0 10px;
         margin: 0 3px;
         background-color: #363a4f;
       }
     '';
-    
+
     settings = {
-      main-bar = { 
+      main-bar = {
         layer = "top";
         position = "top";
 
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" ];
-        modules-right = [ "network" "battery" "clock" ];
+        modules-right = [ "pulseaudio" "backlight" "network" "battery" "clock" ];
 
         "hyprland/workspaces" = {
           format = "{name}";
@@ -158,7 +157,6 @@
         };
 
         clock = {
-          # This format is from your working config
           format = " {0:%H:%M}";
           tooltip-format = "<big>{0:%Y %B}</big>\n<small>{0:%A, %d}</small>";
         };
@@ -179,6 +177,23 @@
           format-disconnected = " Disconnected";
           tooltip-format = "{ifname} via {gwaddr}";
           on-click = "nm-connection-editor";
+        };
+
+        pulseaudio = {
+          format = "{icon} {volume}%";
+          format-muted = " Muted";
+          format-icons = { default = [ "" "" "" ]; };
+          on-click = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
+          on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+          on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+        };
+
+        backlight = {
+          device = "apple-panel-bl";
+          format = "{icon} {percent}%";
+          format-icons = [ "" "" ];
+          on-scroll-up = "brightnessctl set 5%+";
+          on-scroll-down = "brightnessctl set 5%-";
         };
       };
     };
@@ -202,7 +217,7 @@
   };
 
   # -------------------------------------------------------------------
-  # 🐚 ZSH SHELL CONFIGURATION (NEW)
+  # 🐚 ZSH SHELL CONFIGURATION
   # -------------------------------------------------------------------
   programs.zsh = {
     enable = true;
@@ -211,11 +226,43 @@
   };
 
   # -------------------------------------------------------------------
+  #  TERMINAL (ALACRITTY) CONFIGURATION
+  # -------------------------------------------------------------------
+  programs.alacritty = {
+    enable = true;
+    settings = {
+      # MODIFIED: Enable copy-on-select.
+      # Alacritty will now automatically copy selected text to the clipboard.
+      selection.save_to_clipboard = true;
+
+      window.opacity = 0.9;
+      font = {
+        normal.family = "FiraCode Nerd Font";
+        size = 12;
+      };
+    };
+  };
+
+  # -------------------------------------------------------------------
+  # 🚀 ZELLIJ CONFIGURATION (MODIFIED)
+  # -------------------------------------------------------------------
+  xdg.configFile."zellij/config.kdl" = {
+    force = true; # Allow Home Manager to overwrite the existing file
+    text = ''
+      // Ensure mouse mode is enabled so Zellij can handle clicks and scrolls.
+      mouse_mode true
+
+      // MODIFIED: Enable copy-on-select.
+      // When text is selected, it will be automatically copied to the clipboard.
+      copy_on_select true
+    '';
+  };
+
+  # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs;
   [
-    # MODIFIED: Added new packages
     (inputs.zen-browser.packages.${pkgs.system}.default)
     gh
     alacritty
