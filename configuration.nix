@@ -130,9 +130,15 @@
     KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
-  home-manager.users.garth = {
-    imports = [ ./home-garth.nix ];
-    home.stateVersion = "25.11";
+  home-manager = {
+    # FIX: Add backup file extension here to resolve 'clobbered' error for Waybar config files,
+    # and avoid the 'home-manager.users.garth.home-manager' option does not exist error.
+    backupFileExtension = "bak"; 
+
+    users.garth = {
+      imports = [ ./home-garth.nix ];
+      home.stateVersion = "25.11";
+    };
   };
 
   environment.systemPackages = with pkgs; [ git vim wget keyd ];
