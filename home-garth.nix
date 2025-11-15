@@ -1,16 +1,22 @@
-############################################################
-##########         START home-garth.nix           ##########
-############################################################
-
-# MODIFIED: Accepts 'inputs' to get the zen-browser package
 { config, pkgs, lib, inputs, ... }:
 
 {
   # -------------------------------------------------------------------
+  # 🎨 CATPPUCCIN THEME
+  # -------------------------------------------------------------------
+  catppuccin = {
+    enable = true;
+    flavor = "macchiato";
+    alacritty.enable = true;
+    helix.enable = true;
+    waybar.enable = true;
+    zellij.enable = true;
+  };
+
+  # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
-
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
@@ -19,7 +25,6 @@
     "Xft.dpi" = 192;
     "Xcursor.size" = 48;
   };
-
   # -------------------------------------------------------------------
   # 🖥️ HYPRLAND WINDOW MANAGER
   # -------------------------------------------------------------------
@@ -27,29 +32,21 @@
     enable = true;
     settings = {
       monitor = [ ",preferred,auto,2" ];
-
       "exec-once" = [
-        "alacritty -e zellij"
       ];
       "exec" = [
       ];
 
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
       bind = [
-        "SUPER, R, exec, ~/.config/hypr/scripts/rebuild"
-        "SUPER_SHIFT, Q, killactive,"
-
+        "SUPER, T, exec, alacritty -e zellij"
+        "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
-
-        # Volume control
         "SUPER, P, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
         "SUPER, O, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-
-        # Brightness control
         "SUPER, U, exec, brightnessctl set 5%-"
         "SUPER, I, exec, brightnessctl set 5%+"
-
         "SUPER, 1, workspace, 1"
         "SUPER, 2, workspace, 2"
         "SUPER, 3, workspace, 3"
@@ -88,7 +85,6 @@
       };
     };
   };
-
   # -------------------------------------------------------------------
   # 📊 WAYBAR SYSTEMD USER SERVICE (Robust Method)
   # -------------------------------------------------------------------
@@ -106,71 +102,53 @@
       WantedBy = [ "graphical-session.target" ];
     };
   };
-
+  # -------------------------------------------------------------------
+  # 🌇 HYPRSUNSET SYSTEMD USER SERVICE
+  # -------------------------------------------------------------------
+  systemd.user.services.hyprsunset = {
+    Unit = {
+      Description = "Day/night gamma adjustments for Hyprland";
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.hyprsunset}/bin/hyprsunset";
+      Restart = "always";
+      RestartSec = 3;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
   # -------------------------------------------------------------------
   # 📊 WAYBAR CONFIGURATION
   # -------------------------------------------------------------------
   programs.waybar = {
     enable = true;
-    style = ''
-      * {
-        border: none;
-        font-family: monospace;
-        font-size: 13px;
-        color: #cad3f5;
-      }
-      window#waybar {
-        background: rgba(30, 30, 46, 0.7);
-        border-bottom: 3px solid rgba(137, 180, 250, 0.8);
-      }
-      #workspaces button {
-        padding: 0 5px;
-        color: #cad3f5;
-      }
-      #workspaces button.focused {
-        background: #89b4fa;
-        color: #1e1e2e;
-      }
-      #clock, #battery, #cpu, #memory, #network, #pulseaudio, #backlight {
-        padding: 0 10px;
-        margin: 0 3px;
-        background-color: #363a4f;
-      }
-    '';
-
     settings = {
       main-bar = {
         layer = "top";
         position = "top";
-
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" ];
-        modules-right = [ "pulseaudio" "backlight" "network" "battery" "clock" ];
-
+        modules-right = [ "pulseaudio" "backlight" "network" "battery" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
-          format-icons = {
-            "1" = "";
-            "2" = "";
-            "3" = "";
-          };
+          format-icons = { "1" = ""; "2" = ""; "3" = ""; };
         };
-
         clock = {
           format = " {0:%H:%M}";
+          format-alt = " {0:%A, %d %B}";
           tooltip-format = "<big>{0:%Y %B}</big>\n<small>{0:%A, %d}</small>";
+          on-click = "";
         };
-
         cpu = { interval = 10; format = " {usage}%"; tooltip = false; };
         memory = { interval = 10; format = " {percentage}%"; };
-
         battery = {
           format = "{icon} {capacity}%";
           format-charging = " {capacity}%";
           format-icons = [ "" "" "" "" "" ];
           states = { good = 90; warning = 30; critical = 15; };
         };
-
         network = {
           format-wifi = " {essid}";
           format-ethernet = " {ipaddr}";
@@ -178,7 +156,6 @@
           tooltip-format = "{ifname} via {gwaddr}";
           on-click = "nm-connection-editor";
         };
-
         pulseaudio = {
           format = "{icon} {volume}%";
           format-muted = " Muted";
@@ -187,7 +164,6 @@
           on-scroll-up = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
           on-scroll-down = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
         };
-
         backlight = {
           device = "apple-panel-bl";
           format = "{icon} {percent}%";
@@ -195,10 +171,14 @@
           on-scroll-up = "brightnessctl set 5%+";
           on-scroll-down = "brightnessctl set 5%-";
         };
+        "custom/logout" = {
+          format = "󰗼";
+          tooltip-format = "Logout";
+          on-click = "hyprctl dispatch exit";
+        };
       };
     };
   };
-
   # -------------------------------------------------------------------
   # ✨ HiDPI & SCALING FOR NATIVE WAYLAND APPS
   # -------------------------------------------------------------------
@@ -211,8 +191,11 @@
   programs.helix = {
     enable = true;
     settings = {
-      theme = "catppuccin_macchiato";
-      editor = { line-number = "relative"; cursorline = true; };
+      editor = {
+        line-number = "relative";
+        cursorline = true;
+        bufferline = "always";
+      };
     };
   };
 
@@ -221,8 +204,22 @@
   # -------------------------------------------------------------------
   programs.zsh = {
     enable = true;
-    enableAutosuggestions = true;
-    enableSyntaxHighlighting = true;
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+    shellAliases = {
+      # The rebuild alias has been replaced by a more robust function below
+    };
+    initContent = ''
+      # A robust rebuild command that works from any directory
+      rebuild() {
+        (
+          cd /etc/nixos &&
+          echo "==> Temporarily changing directory to /etc/nixos" &&
+          sudo nixos-rebuild switch --flake .#nixos "$@" &&
+          echo "==> Returning to original directory"
+        )
+      }
+    '';
   };
 
   # -------------------------------------------------------------------
@@ -231,10 +228,7 @@
   programs.alacritty = {
     enable = true;
     settings = {
-      # MODIFIED: Enable copy-on-select.
-      # Alacritty will now automatically copy selected text to the clipboard.
       selection.save_to_clipboard = true;
-
       window.opacity = 0.9;
       font = {
         normal.family = "FiraCode Nerd Font";
@@ -244,19 +238,53 @@
   };
 
   # -------------------------------------------------------------------
-  # 🚀 ZELLIJ CONFIGURATION (MODIFIED)
+  # 🚀 ZELLIJ CONFIGURATION
   # -------------------------------------------------------------------
-  xdg.configFile."zellij/config.kdl" = {
-    force = true; # Allow Home Manager to overwrite the existing file
-    text = ''
-      // Ensure mouse mode is enabled so Zellij can handle clicks and scrolls.
-      mouse_mode true
+  xdg.configFile."zellij/config.kdl".text = ''
+    theme "catppuccin-macchiato"
+    pane_frames false
+    default_shell "zsh"
+    copy_on_select true
+    layout "default"
+    show_startup_tips false
 
-      // MODIFIED: Enable copy-on-select.
-      // When text is selected, it will be automatically copied to the clipboard.
-      copy_on_select true
-    '';
-  };
+    keybinds {
+        unbind "Alt h" "Alt l" "Alt t" "Alt e"
+        locked {
+            bind "Ctrl a" { SwitchToMode "Normal"; }
+        }
+        normal {
+            bind "n" { NewTab; SwitchToMode "Locked"; }
+            bind "x" { CloseTab; SwitchToMode "Locked"; }
+            bind "h" { GoToPreviousTab; SwitchToMode "Locked"; }
+            bind "l" { GoToNextTab; SwitchToMode "Locked"; }
+
+            // MODIFIED: Added bindings for switching to specific tabs
+            bind "1" { GoToTab 1; SwitchToMode "Locked"; }
+            bind "2" { GoToTab 2; SwitchToMode "Locked"; }
+            bind "3" { GoToTab 3; SwitchToMode "Locked"; }
+            bind "4" { GoToTab 4; SwitchToMode "Locked"; }
+            bind "5" { GoToTab 5; SwitchToMode "Locked"; }
+            bind "6" { GoToTab 6; SwitchToMode "Locked"; }
+            bind "7" { GoToTab 7; SwitchToMode "Locked"; }
+            bind "8" { GoToTab 8; SwitchToMode "Locked"; }
+            bind "9" { GoToTab 9; SwitchToMode "Locked"; }
+        }
+    }
+  '';
+
+  xdg.configFile."zellij/layouts/default.kdl".text = ''
+    layout {
+        default_tab_template {
+            children
+            pane size=1 borderless=true {
+                plugin location="zellij:tab-bar" {
+                    format_left ""
+                }
+            }
+        }
+    }
+  '';
 
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
@@ -276,5 +304,6 @@
     ydotool
     procps
     nerd-fonts.fira-code
+    hyprsunset
   ];
 }
