@@ -1,8 +1,11 @@
+############################################################
+##########          START home-garth.nix          ##########
+############################################################
+
 # /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
 {
-  # MODIFIED: Removed the 'let' block that previously defined the script.
   imports = [ ./disable-touchpad-while-typing.nix ];
 
   # -------------------------------------------------------------------
@@ -31,6 +34,7 @@
     "Xft.dpi" = 192;
     "Xcursor.size" = 48;
   };
+
   # -------------------------------------------------------------------
   # 🖥️ HYPRLAND WINDOW MANAGER
   # -------------------------------------------------------------------
@@ -48,7 +52,7 @@
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
         "SUPER_SHIFT, O, exec, fuzzel"
-        "SUPER_SHIFT, B, exec, sudo toggle-battery-limit"
+        # The keybinding for toggling the battery limit has been removed.
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
@@ -94,6 +98,7 @@
       };
     };
   };
+
   # -------------------------------------------------------------------
   # 📊 WAYBAR SYSTEMD USER SERVICE (Robust Method)
   # -------------------------------------------------------------------
@@ -111,6 +116,7 @@
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
   # -------------------------------------------------------------------
   # 🌇 HYPRSUNSET SYSTEMD USER SERVICE
   # -------------------------------------------------------------------
@@ -128,6 +134,7 @@
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
   # -------------------------------------------------------------------
   # 📊 WAYBAR CONFIGURATION
   # -------------------------------------------------------------------
@@ -185,6 +192,7 @@
           exec = "waybar-battery-status";
           return-type = "json";
           interval = 5;
+          # The on-click handler has been removed.
         };
         "custom/logout" = {
           format = "󰗼";
@@ -194,6 +202,7 @@
       };
     };
   };
+
   # -------------------------------------------------------------------
   # ✨ HiDPI & SCALING FOR NATIVE WAYLAND APPS
   # -------------------------------------------------------------------
@@ -305,8 +314,6 @@
   home.packages = with pkgs;
   [
     (inputs.zen-browser.packages.${pkgs.system}.default)
-    # MODIFIED: Removed waybar-battery-status. It is now installed via
-    # the main NixOS configuration.
     gh
     alacritty
     zellij

@@ -1,13 +1,25 @@
+############################################################
+##########          START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
 let
-  # MODIFIED: The Waybar status script is now defined here, where it can
-  # access the system's battery-limiter configuration.
+  # The Waybar status script provides visual feedback.
   waybar-battery-status = pkgs.writeShellScriptBin "waybar-battery-status" ''
     #!${pkgs.stdenv.shell}
     
-    THRESHOLD_PATH="/sys/class/power_supply/battery/charge_control_end_threshold"
+    find_threshold_path() {
+      if [ -f "/sys/class/power_supply/macsmc-battery/charge_control_end_threshold" ]; then
+        echo "/sys/class/power_supply/macsmc-battery/charge_control_end_threshold"
+      elif [ -f "/sys/class/power_supply/battery/charge_control_end_threshold" ]; then
+        echo "/sys/class/power_supply/battery/charge_control_end_threshold"
+      else
+        exit 1
+      fi
+    }
+    THRESHOLD_PATH=$(find_threshold_path)
     
     if [ ! -f "$THRESHOLD_PATH" ]; then
       exit 0
@@ -139,7 +151,6 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
     shell = pkgs.zsh;
-    # MODIFIED: The status script is now added to your user's packages here.
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks waybar-battery-status ];
   };
   users.users.root.home = lib.mkForce "/root";
@@ -151,11 +162,25 @@ in
   # -------------------------------------------------------------------
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
   # -------------------------------------------------------------------
-  environment.systemPackages = with pkgs; [ git vim wget keyd ];
+  # The toggle script is installed here so you can call it from the command line.
+  environment.systemPackages = with pkgs; [ git vim wget keyd toggle-battery-limit ];
   programs.zsh.enable = true;
   programs.firefox.enable = true;
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };
   services.openssh.enable = true;
   system.stateVersion = "25.11";
+
+  # This sudo rule is required for passwordless manual execution.
+  security.sudo.extraRules = [
+    {
+      users = [ "garth" ];
+      commands = [
+        {
+          command = "${pkgs.toggle-battery-limit}/bin/toggle-battery-limit";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
 }
