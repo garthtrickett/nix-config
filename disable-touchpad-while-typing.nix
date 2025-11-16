@@ -11,9 +11,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    home.packages = [ pkgs.keyd pkgs.gawk ];
+
     systemd.user.services.disable-touchpad-while-typing = {
       Unit = {
-        Description = "Disable touchpad while typing daemon";
+        Description = "Intelligently disable touchpad while typing daemon";
         PartOf = [ "graphical-session.target" ];
       };
       Service = {
@@ -22,43 +24,46 @@ in
             #!${pkgs.bash}/bin/bash
             set -euo pipefail
 
-            # Define a file to store the process ID of our timer
             PID_FILE="$XDG_RUNTIME_DIR/disable-touchpad.pid"
 
-            echo "Starting disable-touchpad-while-typing service..."
+            echo "Starting intelligent touchpad daemon using 'keyd monitor'..."
             sleep 3
 
-            ${pkgs.libinput}/bin/libinput debug-events | ${pkgs.gnugrep}/bin/grep --line-buffered "KEY " | while read -r; do
-              # --- TIMER RESET LOGIC ---
-              # If a PID file exists, it means a timer is likely running.
-              if [ -f "$PID_FILE" ]; then
-                # Read the PID from the file
-                PID=$(cat "$PID_FILE")
-                # Check if a process with that PID is actually running, then kill it.
-                # The 'ps' check prevents errors if the process finished but the PID file remains.
-                if ps -p "$PID" > /dev/null; then
-                  echo "Key press detected. Resetting previous timer (PID: $PID)."
-                  kill "$PID"
-                fi
-              else
-                echo "Key press detected. Disabling touchpad."
-              fi
-
-              # Always disable the touchpad on a key press.
-              ${toggleScript}/bin/toggle-touchpad disable
-
-              # --- START NEW TIMER ---
-              # Start a new timer in the background.
-              (
-                sleep 0.4
-                echo "Timer finished. Enabling touchpad."
-                ${toggleScript}/bin/toggle-touchpad enable
-                # Clean up the PID file once the timer is done.
-                rm -f "$PID_FILE"
-              ) &
+            # Pipe 'keyd monitor' through 'grep' to listen ONLY to the virtual keyboard.
+            # This filters out the noisy raw hardware events, preventing multiple triggers.
+            ${pkgs.keyd}/bin/keyd monitor | ${pkgs.gnugrep}/bin/grep --line-buffered "keyd virtual keyboard" | while read -r line; do
               
-              # Immediately write the PID of the new background process ($!) to our file.
-              echo $! > "$PID_FILE"
+              if echo "$line" | ${pkgs.gnugrep}/bin/grep -q "down"; then
+                
+                KEY=$(${pkgs.gawk}/bin/awk '{print $(NF-1)}' <<< "$line")
+                
+                case $KEY in
+                  leftshift|rightshift|leftcontrol|rightcontrol|leftalt|rightalt|leftmeta|rightmeta|capslock)
+                    continue
+                    ;;
+                  *)
+                    # This is a regular key, proceed.
+                    ;;
+                esac
+
+                # --- TIMER LOGIC ---
+                if [ -f "$PID_FILE" ]; then
+                  PID=$(cat "$PID_FILE")
+                  if ps -p "$PID" > /dev/null; then
+                    kill "$PID"
+                  fi
+                fi
+
+                ${toggleScript}/bin/toggle-touchpad disable
+
+                (
+                  sleep 0.3
+                  ${toggleScript}/bin/toggle-touchpad enable
+                  rm -f "$PID_FILE"
+                ) &
+                
+                echo $! > "$PID_FILE"
+              fi
             done
           '';
         in "${script}";
