@@ -16,7 +16,7 @@
     flavor = "macchiato";
     alacritty.enable = true;
     helix.enable = true;
-    waybar.enable = true;
+    # waybar.enable = true; # Disabled to use custom styling below
     zellij.enable = true;
   };
 
@@ -58,6 +58,7 @@
         "SUPER, L, movefocus, r"
         "SUPER, P, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
         "SUPER, O, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+        "SUPER, M, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" # <-- ADDED THIS LINE
         "SUPER, U, exec, brightnessctl set 5%-"
         "SUPER, I, exec, brightnessctl set 5%+"
         "SUPER, 1, workspace, 1"
@@ -140,6 +141,121 @@
   # -------------------------------------------------------------------
   programs.waybar = {
     enable = true;
+    style = ''
+      * {
+          font-family: "FiraCode Nerd Font", FontAwesome, sans-serif;
+          font-size: 14px;
+          border: none;
+          border-radius: 0;
+      }
+
+      window#waybar {
+          background-color: rgba(30, 30, 46, 0.85); /* Dark background with transparency */
+          color: #cdd6f4; /* Light text color */
+          transition-property: background-color;
+          transition-duration: .5s;
+          border-radius: 10px; /* Rounded corners for the bar */
+      }
+
+      #workspaces {
+          background-color: transparent;
+          margin: 5px;
+      }
+
+      #workspaces button {
+          padding: 2px 10px;
+          margin: 0 3px;
+          color: #cdd6f4;
+          background-color: #313244; /* Darker background for buttons */
+          border-radius: 8px; /* Rounded buttons */
+          transition: all 0.3s ease;
+      }
+
+      #workspaces button.active {
+          background-color: #89b4fa; /* Blue for active workspace */
+          color: #1e1e2e;
+      }
+
+      #workspaces button:hover {
+          background-color: #b4befe; /* Lighter purple on hover */
+          color: #1e1e2e;
+      }
+
+      #window {
+        font-weight: bold;
+        margin-right: 15px;
+      }
+
+      /* Style for all modules */
+      #clock,
+      #battery,
+      #cpu,
+      #memory,
+      #network,
+      #pulseaudio,
+      #backlight,
+      #custom-battery-limit,
+      #custom-logout {
+          padding: 0 10px;
+          margin: 5px 3px;
+          color: #cdd6f4;
+      }
+
+      #pulseaudio {
+          color: #89b4fa; /* Blue */
+      }
+
+      #memory {
+          color: #a6e3a1; /* Green */
+      }
+
+
+
+      #cpu {
+          color: #fab387; /* Orange */
+      }
+
+      #backlight {
+        color: #f9e2af; /* Yellow */
+      }
+
+      #network {
+          color: #b4befe; /* Lavender */
+      }
+
+      #battery {
+          color: #a6e3a1; /* Green */
+      }
+
+      #battery.charging {
+          color: #a6e3a1;
+      }
+
+      #battery.warning:not(.charging) {
+          color: #fab387; /* Orange for warning */
+      }
+
+      #battery.critical:not(.charging) {
+          color: #f38ba8; /* Red for critical */
+          animation-name: blink;
+          animation-duration: 0.5s;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+      }
+
+      @keyframes blink {
+          to {
+              background-color: #f38ba8;
+              color: #1e1e2e;
+          }
+      }
+
+      #custom-logout {
+        color: #f38ba8; /* Red */
+        margin-right: 5px;
+      }
+    '';
     settings = {
       main-bar = {
         layer = "top";
