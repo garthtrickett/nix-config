@@ -50,7 +50,7 @@ in
               # --- START NEW TIMER ---
               # Start a new timer in the background.
               (
-                sleep 0.2
+                sleep 0.3
                 echo "Timer finished. Enabling touchpad."
                 ${toggleScript}/bin/toggle-touchpad enable
                 # Clean up the PID file once the timer is done.
