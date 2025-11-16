@@ -2,7 +2,7 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
-  # Import the new home-manager module for the service.
+  # MODIFIED: Removed the 'let' block that previously defined the script.
   imports = [ ./disable-touchpad-while-typing.nix ];
 
   # -------------------------------------------------------------------
@@ -21,7 +21,6 @@
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
-  # Enable the new automated service.
   services.disable-touchpad-while-typing.enable = true;
 
   # -------------------------------------------------------------------
@@ -49,8 +48,7 @@
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
         "SUPER_SHIFT, O, exec, fuzzel"
-        # MODIFIED: Removed the manual toggle keybinding as requested.
-        # "SUPER_SHIFT, T, exec, toggle-touchpad"
+        "SUPER_SHIFT, B, exec, sudo toggle-battery-limit"
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
@@ -82,7 +80,6 @@
         follow_mouse = 1;
         touchpad = {
             natural_scroll = false;
-            # Defer to our custom module for disable-while-typing logic.
             disable_while_typing = false;
             tap-to-click = true;
            };
@@ -142,7 +139,7 @@
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" ];
-        modules-right = [ "pulseaudio" "backlight" "network" "battery" "clock" "custom/logout" ];
+        modules-right = [ "pulseaudio" "backlight" "network" "battery" "custom/battery-limit" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -182,6 +179,12 @@
           format-icons = [ "" "" ];
           on-scroll-up = "brightnessctl set 5%+";
           on-scroll-down = "brightnessctl set 5%-";
+        };
+        "custom/battery-limit" = {
+          format = "{}";
+          exec = "waybar-battery-status";
+          return-type = "json";
+          interval = 5;
         };
         "custom/logout" = {
           format = "󰗼";
@@ -302,8 +305,8 @@
   home.packages = with pkgs;
   [
     (inputs.zen-browser.packages.${pkgs.system}.default)
-    # MODIFIED: Removed toggle-touchpad-script. The service calls it directly,
-    # so it's no longer needed in your user's PATH.
+    # MODIFIED: Removed waybar-battery-status. It is now installed via
+    # the main NixOS configuration.
     gh
     alacritty
     zellij
@@ -321,6 +324,6 @@
     gnugrep
     gnused
     dunst
-    libinput # Add libinput as a dependency for the new service
+    libinput
   ];
 }

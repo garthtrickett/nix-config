@@ -1,6 +1,28 @@
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
+let
+  # MODIFIED: The Waybar status script is now defined here, where it can
+  # access the system's battery-limiter configuration.
+  waybar-battery-status = pkgs.writeShellScriptBin "waybar-battery-status" ''
+    #!${pkgs.stdenv.shell}
+    
+    THRESHOLD_PATH="/sys/class/power_supply/battery/charge_control_end_threshold"
+    
+    if [ ! -f "$THRESHOLD_PATH" ]; then
+      exit 0
+    fi
+
+    CONFIGURED_LIMIT=${toString config.services.battery-limiter.threshold}
+    CURRENT_LIMIT=$(cat "$THRESHOLD_PATH")
+
+    if [ "$CURRENT_LIMIT" -eq "$CONFIGURED_LIMIT" ]; then
+      printf '{"text": "󰌾", "tooltip": "Battery charge limit is ON (%s%%)"}' "$CONFIGURED_LIMIT"
+    else
+      printf '{"text": "", "tooltip": "Battery charge limit is OFF"}'
+    fi
+  '';
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -97,12 +119,11 @@
   };
   security.rtkit.enable = true;
 
-  # MODIFIED: Disabled libinput's native disable-while-typing to use our custom module.
   services.libinput = {
     enable = true;
     touchpad = {
       disableWhileTyping = false;
-      tapping = true; # Ensures tap-to-click is handled at the driver level
+      tapping = true;
       naturalScrolling = false;
     };
   };
@@ -112,12 +133,14 @@
     threshold = 80;
   };
 
+
   users.groups.input = {};
   users.users.garth = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
     shell = pkgs.zsh;
-    packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
+    # MODIFIED: The status script is now added to your user's packages here.
+    packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks waybar-battery-status ];
   };
   users.users.root.home = lib.mkForce "/root";
 
