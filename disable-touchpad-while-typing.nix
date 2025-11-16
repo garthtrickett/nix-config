@@ -1,34 +1,67 @@
+# /etc/nixos/disable-touchpad-while-typing.nix
 { config, pkgs, lib, ... }:
 
 let
   cfg = config.services.disable-touchpad-while-typing;
-
-  # This script uses swayidle to watch for keyboard activity.
-  # On activity ("before-sleep"), it disables the touchpad.
-  # After 1 second of inactivity ("timeout"), it re-enables the touchpad.
-  disable-touchpad-script = pkgs.writeShellScriptBin "disable-touchpad-while-typing" ''
-    #!${pkgs.runtimeShell}
-    ${pkgs.swayidle}/bin/swayidle -w \
-      timeout 1 '${pkgs.hyprland}/bin/hyprctl keyword input:touchpad:enabled true' \
-      before-sleep '${pkgs.hyprland}/bin/hyprctl keyword input:touchpad:enabled false'
-  '';
-
+  toggleScript = import ./toggle-touchpad.nix { inherit pkgs; };
 in
 {
-  # This section defines a new option so you can easily enable/disable this feature.
   options.services.disable-touchpad-while-typing = {
-    enable = lib.mkEnableOption "Enable script to disable touchpad while typing";
+    enable = lib.mkEnableOption "Disable touchpad while typing service";
   };
 
-  # This section creates the systemd user service if the option is enabled.
   config = lib.mkIf cfg.enable {
     systemd.user.services.disable-touchpad-while-typing = {
       Unit = {
-        Description = "Disable touchpad while typing";
+        Description = "Disable touchpad while typing daemon";
         PartOf = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${disable-touchpad-script}/bin/disable-touchpad-while-typing";
+        ExecStart = let
+          script = pkgs.writeShellScript "disable-touchpad-daemon" ''
+            #!${pkgs.bash}/bin/bash
+            set -euo pipefail
+
+            # Define a file to store the process ID of our timer
+            PID_FILE="$XDG_RUNTIME_DIR/disable-touchpad.pid"
+
+            echo "Starting disable-touchpad-while-typing service..."
+            sleep 3
+
+            ${pkgs.libinput}/bin/libinput debug-events | ${pkgs.gnugrep}/bin/grep --line-buffered "KEY " | while read -r; do
+              # --- TIMER RESET LOGIC ---
+              # If a PID file exists, it means a timer is likely running.
+              if [ -f "$PID_FILE" ]; then
+                # Read the PID from the file
+                PID=$(cat "$PID_FILE")
+                # Check if a process with that PID is actually running, then kill it.
+                # The 'ps' check prevents errors if the process finished but the PID file remains.
+                if ps -p "$PID" > /dev/null; then
+                  echo "Key press detected. Resetting previous timer (PID: $PID)."
+                  kill "$PID"
+                fi
+              else
+                echo "Key press detected. Disabling touchpad."
+              fi
+
+              # Always disable the touchpad on a key press.
+              ${toggleScript}/bin/toggle-touchpad disable
+
+              # --- START NEW TIMER ---
+              # Start a new timer in the background.
+              (
+                sleep 0.2
+                echo "Timer finished. Enabling touchpad."
+                ${toggleScript}/bin/toggle-touchpad enable
+                # Clean up the PID file once the timer is done.
+                rm -f "$PID_FILE"
+              ) &
+              
+              # Immediately write the PID of the new background process ($!) to our file.
+              echo $! > "$PID_FILE"
+            done
+          '';
+        in "${script}";
         Restart = "always";
         RestartSec = 3;
       };

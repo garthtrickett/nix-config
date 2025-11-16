@@ -1,8 +1,9 @@
+# /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
 {
-  # MODIFIED: Removed the import for our custom script.
-  # imports = [ ./disable-touchpad-while-typing.nix ];
+  # Import the new home-manager module for the service.
+  imports = [ ./disable-touchpad-while-typing.nix ];
 
   # -------------------------------------------------------------------
   # 🎨 CATPPUCCIN THEME
@@ -20,8 +21,8 @@
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
-  # MODIFIED: Disabled the now-obsolete service.
-  # services.disable-touchpad-while-typing.enable = true;
+  # Enable the new automated service.
+  services.disable-touchpad-while-typing.enable = true;
 
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
@@ -39,6 +40,7 @@
     settings = {
       monitor = [ ",preferred,auto,2" ];
       "exec-once" = [
+        "dunst"
       ];
       "exec" = [
       ];
@@ -47,6 +49,8 @@
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
         "SUPER_SHIFT, O, exec, fuzzel"
+        # MODIFIED: Removed the manual toggle keybinding as requested.
+        # "SUPER_SHIFT, T, exec, toggle-touchpad"
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
@@ -78,9 +82,8 @@
         follow_mouse = 1;
         touchpad = {
             natural_scroll = false;
-            # MODIFIED: Re-enabled the standard Hyprland setting.
-            # This will now use our improved libinput configuration.
-            disable_while_typing = true;
+            # Defer to our custom module for disable-while-typing logic.
+            disable_while_typing = false;
             tap-to-click = true;
            };
       };
@@ -267,8 +270,6 @@
             bind "x" { CloseTab; SwitchToMode "Locked"; }
             bind "h" { GoToPreviousTab; SwitchToMode "Locked"; }
             bind "l" { GoToNextTab; SwitchToMode "Locked"; }
-
-            // MODIFIED: Added bindings for switching to specific tabs
             bind "1" { GoToTab 1; SwitchToMode "Locked"; }
             bind "2" { GoToTab 2; SwitchToMode "Locked"; }
             bind "3" { GoToTab 3; SwitchToMode "Locked"; }
@@ -301,6 +302,8 @@
   home.packages = with pkgs;
   [
     (inputs.zen-browser.packages.${pkgs.system}.default)
+    # MODIFIED: Removed toggle-touchpad-script. The service calls it directly,
+    # so it's no longer needed in your user's PATH.
     gh
     alacritty
     zellij
@@ -314,5 +317,10 @@
     procps
     nerd-fonts.fira-code
     hyprsunset
+    libnotify
+    gnugrep
+    gnused
+    dunst
+    libinput # Add libinput as a dependency for the new service
   ];
 }

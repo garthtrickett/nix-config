@@ -97,11 +97,11 @@
   };
   security.rtkit.enable = true;
 
-  # MODIFIED: Added detailed libinput configuration for better palm rejection.
+  # MODIFIED: Disabled libinput's native disable-while-typing to use our custom module.
   services.libinput = {
     enable = true;
     touchpad = {
-      disableWhileTyping = true;
+      disableWhileTyping = false;
       tapping = true; # Ensures tap-to-click is handled at the driver level
       naturalScrolling = false;
     };
