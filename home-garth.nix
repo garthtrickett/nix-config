@@ -16,7 +16,6 @@
     flavor = "macchiato";
     alacritty.enable = true;
     helix.enable = true;
-    # waybar.enable = true; # Disabled to use custom styling below
     zellij.enable = true;
   };
 
@@ -25,6 +24,29 @@
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
   services.disable-touchpad-while-typing.enable = true;
+
+  # -------------------------------------------------------------------
+  # 🌇 HYPRSUNSET SERVICE (Using the modern 'settings' option)
+  # -------------------------------------------------------------------
+  services.hyprsunset = {
+    enable = true;
+    settings = 
+      {
+
+  profile = [
+    {
+      time = "7:30";
+      identity = true;
+    }
+    {
+      time = "21:00";
+      temperature = 3000;
+      gamma = 0.8;
+    }
+  ];
+};
+      
+  };
 
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
@@ -52,13 +74,12 @@
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
         "SUPER_SHIFT, O, exec, fuzzel"
-        # The keybinding for toggling the battery limit has been removed.
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
         "SUPER, P, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
         "SUPER, O, exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-        "SUPER, M, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle" # <-- ADDED THIS LINE
+        "SUPER, M, exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
         "SUPER, U, exec, brightnessctl set 5%-"
         "SUPER, I, exec, brightnessctl set 5%+"
         "SUPER, 1, workspace, 1"
@@ -119,24 +140,6 @@
   };
 
   # -------------------------------------------------------------------
-  # 🌇 HYPRSUNSET SYSTEMD USER SERVICE
-  # -------------------------------------------------------------------
-  systemd.user.services.hyprsunset = {
-    Unit = {
-      Description = "Day/night gamma adjustments for Hyprland";
-      PartOf = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.hyprsunset}/bin/hyprsunset";
-      Restart = "always";
-      RestartSec = 3;
-    };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-  };
-
-  # -------------------------------------------------------------------
   # 📊 WAYBAR CONFIGURATION
   # -------------------------------------------------------------------
   programs.waybar = {
@@ -150,11 +153,11 @@
       }
 
       window#waybar {
-          background-color: rgba(30, 30, 46, 0.85); /* Dark background with transparency */
-          color: #cdd6f4; /* Light text color */
+          background-color: rgba(30, 30, 46, 0.85);
+          color: #cdd6f4;
           transition-property: background-color;
           transition-duration: .5s;
-          border-radius: 10px; /* Rounded corners for the bar */
+          border-radius: 10px;
       }
 
       #workspaces {
@@ -166,18 +169,18 @@
           padding: 2px 10px;
           margin: 0 3px;
           color: #cdd6f4;
-          background-color: #313244; /* Darker background for buttons */
-          border-radius: 8px; /* Rounded buttons */
+          background-color: #313244;
+          border-radius: 8px;
           transition: all 0.3s ease;
       }
 
       #workspaces button.active {
-          background-color: #89b4fa; /* Blue for active workspace */
+          background-color: #89b4fa;
           color: #1e1e2e;
       }
 
       #workspaces button:hover {
-          background-color: #b4befe; /* Lighter purple on hover */
+          background-color: #b4befe;
           color: #1e1e2e;
       }
 
@@ -186,7 +189,6 @@
         margin-right: 15px;
       }
 
-      /* Style for all modules */
       #clock,
       #battery,
       #cpu,
@@ -201,42 +203,16 @@
           color: #cdd6f4;
       }
 
-      #pulseaudio {
-          color: #89b4fa; /* Blue */
-      }
-
-      #memory {
-          color: #a6e3a1; /* Green */
-      }
-
-
-
-      #cpu {
-          color: #fab387; /* Orange */
-      }
-
-      #backlight {
-        color: #f9e2af; /* Yellow */
-      }
-
-      #network {
-          color: #b4befe; /* Lavender */
-      }
-
-      #battery {
-          color: #a6e3a1; /* Green */
-      }
-
-      #battery.charging {
-          color: #a6e3a1;
-      }
-
-      #battery.warning:not(.charging) {
-          color: #fab387; /* Orange for warning */
-      }
-
+      #pulseaudio { color: #89b4fa; }
+      #memory { color: #a6e3a1; }
+      #cpu { color: #fab387; }
+      #backlight { color: #f9e2af; }
+      #network { color: #b4befe; }
+      #battery { color: #a6e3a1; }
+      #battery.charging { color: #a6e3a1; }
+      #battery.warning:not(.charging) { color: #fab387; } /* <-- THIS IS THE CORRECTED LINE */
       #battery.critical:not(.charging) {
-          color: #f38ba8; /* Red for critical */
+          color: #f38ba8;
           animation-name: blink;
           animation-duration: 0.5s;
           animation-timing-function: linear;
@@ -252,7 +228,7 @@
       }
 
       #custom-logout {
-        color: #f38ba8; /* Red */
+        color: #f38ba8;
         margin-right: 5px;
       }
     '';
@@ -308,7 +284,6 @@
           exec = "waybar-battery-status";
           return-type = "json";
           interval = 5;
-          # The on-click handler has been removed.
         };
         "custom/logout" = {
           format = "󰗼";
@@ -326,7 +301,7 @@
   gtk.cursorTheme.size = 48;
 
   # -------------------------------------------------------------------
-  # 📝 HELIX TEXT EDITOR
+  # 📝 HELIX TEXT EDITOR & ZSH SHELL
   # -------------------------------------------------------------------
   programs.helix = {
     enable = true;
@@ -339,18 +314,11 @@
     };
   };
 
-  # -------------------------------------------------------------------
-  # 🐚 ZSH SHELL CONFIGURATION
-  # -------------------------------------------------------------------
   programs.zsh = {
     enable = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
-    shellAliases = {
-      # The rebuild alias has been replaced by a more robust function below
-    };
     initContent = ''
-      # A robust rebuild command that works from any directory
       rebuild() {
         (
           cd /etc/nixos &&
@@ -363,7 +331,7 @@
   };
 
   # -------------------------------------------------------------------
-  #  TERMINAL (ALACRITTY) CONFIGURATION
+  #  TERMINAL (ALACRITTY) & ZELLIJ
   # -------------------------------------------------------------------
   programs.alacritty = {
     enable = true;
@@ -377,9 +345,6 @@
     };
   };
 
-  # -------------------------------------------------------------------
-  # 🚀 ZELLIJ CONFIGURATION
-  # -------------------------------------------------------------------
   xdg.configFile."zellij/config.kdl".text = ''
     theme "catppuccin-macchiato"
     pane_frames false
@@ -387,12 +352,9 @@
     copy_on_select true
     layout "default"
     show_startup_tips false
-
     keybinds {
         unbind "Alt h" "Alt l" "Alt t" "Alt e"
-        locked {
-            bind "Ctrl a" { SwitchToMode "Normal"; }
-        }
+        locked { bind "Ctrl a" { SwitchToMode "Normal"; } }
         normal {
             bind "n" { NewTab; SwitchToMode "Locked"; }
             bind "x" { CloseTab; SwitchToMode "Locked"; }
@@ -429,7 +391,7 @@
   # -------------------------------------------------------------------
   home.packages = with pkgs;
   [
-    (inputs.zen-browser.packages.${pkgs.system}.default)
+    (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
     gh
     alacritty
     zellij
