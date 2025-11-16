@@ -1,11 +1,3 @@
-############################################################
-##########       START configuration.nix          ##########
-############################################################
-
-############################################################
-##########       START configuration.nix          ##########
-############################################################
-
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -104,7 +96,16 @@
     pulse.enable = true;
   };
   security.rtkit.enable = true;
-  services.libinput.enable = true;
+
+  # MODIFIED: Added detailed libinput configuration for better palm rejection.
+  services.libinput = {
+    enable = true;
+    touchpad = {
+      disableWhileTyping = true;
+      tapping = true; # Ensures tap-to-click is handled at the driver level
+      naturalScrolling = false;
+    };
+  };
 
   services.battery-limiter = {
     enable = true;
@@ -115,7 +116,7 @@
   users.users.garth = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
-    shell = pkgs.zsh; # MODIFIED: Shell is now Zsh
+    shell = pkgs.zsh;
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
@@ -128,7 +129,7 @@
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
   # -------------------------------------------------------------------
   environment.systemPackages = with pkgs; [ git vim wget keyd ];
-  programs.zsh.enable = true; # MODIFIED: Added for shell compatibility
+  programs.zsh.enable = true;
   programs.firefox.enable = true;
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };

@@ -1,6 +1,9 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
+  # MODIFIED: Removed the import for our custom script.
+  # imports = [ ./disable-touchpad-while-typing.nix ];
+
   # -------------------------------------------------------------------
   # 🎨 CATPPUCCIN THEME
   # -------------------------------------------------------------------
@@ -17,6 +20,9 @@
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
+  # MODIFIED: Disabled the now-obsolete service.
+  # services.disable-touchpad-while-typing.enable = true;
+
   # -------------------------------------------------------------------
   # ✨ XSESSION & SCALING FOR XWAYLAND APPS
   # -------------------------------------------------------------------
@@ -71,8 +77,10 @@
         follow_mouse = 1;
         touchpad = {
             natural_scroll = false;
+            # MODIFIED: Re-enabled the standard Hyprland setting.
+            # This will now use our improved libinput configuration.
             disable_while_typing = true;
-            tap-to-click = false;
+            tap-to-click = true;
            };
       };
       general = {
