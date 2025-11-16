@@ -46,6 +46,7 @@
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
+        "SUPER_SHIFT, O, exec, fuzzel"
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
@@ -303,7 +304,7 @@
     gh
     alacritty
     zellij
-    wofi
+    fuzzel
     swaylock
     swayidle
     brightnessctl
