@@ -1,7 +1,3 @@
-############################################################
-##########          START configuration.nix          ##########
-############################################################
-
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -39,6 +35,9 @@ in
   imports = [
     ./hardware-configuration.nix
     ./modules/battery-limiter.nix
+    ./modules/system/ydotool.nix # <-- NEW
+    ./modules/system/keyd.nix    # <-- NEW
+    ./modules/system/sudo.nix    # <-- NEW
   ];
 
   # -------------------------------------------------------------------
@@ -93,35 +92,6 @@ in
   services.printing.enable = true;
 
   # -------------------------------------------------------------------
-  # ⌨️ KEY REMAPPING DAEMON (keyd)
-  # -------------------------------------------------------------------
-  services.keyd = {
-    enable = true;
-    keyboards."default" = {
-      ids = [ "*" ];
-      settings.main = { capslock = "overload(control, escape)"; };
-    };
-  };
-
-  # -------------------------------------------------------------------
-  # ⚙️ YDOTOOL SYSTEM SERVICE
-  # -------------------------------------------------------------------
-  systemd.services.ydotoold = {
-    description = "ydotool daemon";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];
-    serviceConfig = {
-      Restart = "always";
-      ExecStart = ''
-        ${pkgs.ydotool}/bin/ydotoold \
-          --socket-path=/run/ydotoold.sock \
-          --socket-own=${config.users.users.garth.name}:${config.users.groups.input.name} \
-          --socket-mode=0660
-      '';
-    };
-  };
-
-  # -------------------------------------------------------------------
   # 🔊 AUDIO, 🔋 BATTERY, 👤 USER
   # -------------------------------------------------------------------
   services.pipewire = {
@@ -145,8 +115,6 @@ in
     threshold = 80;
   };
 
-
-  users.groups.input = {};
   users.users.garth = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
@@ -154,10 +122,6 @@ in
     packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks waybar-battery-status ];
   };
   users.users.root.home = lib.mkForce "/root";
-
-  services.udev.extraRules = ''
-    KERNEL=="uinput", GROUP="input", MODE="0660"
-  '';
 
   # -------------------------------------------------------------------
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
@@ -170,17 +134,4 @@ in
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };
   services.openssh.enable = true;
   system.stateVersion = "25.11";
-
-  # This sudo rule is required for passwordless manual execution.
-  security.sudo.extraRules = [
-    {
-      users = [ "garth" ];
-      commands = [
-        {
-          command = "${pkgs.toggle-battery-limit}/bin/toggle-battery-limit";
-          options = [ "NOPASSWD" ];
-        }
-      ];
-    }
-  ];
 }
