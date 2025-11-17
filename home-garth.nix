@@ -14,7 +14,7 @@
     ./modules/home/terminal.nix
     ./modules/home/helix.nix
   ];
-  
+
   # -------------------------------------------------------------------
   # 🔑 SECRETS MANAGEMENT WITH SOPS
   # -------------------------------------------------------------------
@@ -27,6 +27,14 @@
     
     # Define the user-specific secrets that Home Manager needs.
     secrets.GEMINI_API_KEY = {};
+  };
+
+  # -------------------------------------------------------------------
+  # ⚙️ GLOBAL ENVIRONMENT & SESSION VARIABLES
+  # -------------------------------------------------------------------
+  home.sessionVariables = {
+    EDITOR = "hx";
+    VISUAL = "hx";
   };
   
   # -------------------------------------------------------------------
@@ -83,6 +91,27 @@
   };
 
   # -------------------------------------------------------------------
+  #  Git & Jujutsu Configuration
+  # -------------------------------------------------------------------
+  programs.jujutsu = {
+    enable = true;
+    settings = {
+      user = {
+        name = "Garth Trickett";
+        email = "garthtrickett@gmail.com";
+      };
+      aliases = {
+        sync = ''!bash -c "jj git fetch && jj rebase -r @ -d main@origin"'';
+        start = ''!bash -c "jj new main@origin"'';
+        sp = ''!bash -c "jj git fetch && jj rebase -r @ -d main@origin && jj git push --change=@"'';
+      };
+      ui = {
+        editor = "helix";
+      };
+    };
+  };
+
+  # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs;
@@ -107,7 +136,7 @@
     procps
     nerd-fonts.fira-code
     hyprsunset
-  
+    libreoffice
     libnotify
     gnugrep
     gnused
@@ -115,11 +144,12 @@
     libinput
     iwgtk
     unzip
-    sops # Add sops and age to ensure they are installed
+    sops 
     age
-    
     wf-recorder
     ffmpeg
+    file-roller # The archive manager
+    nemo-fileroller # Nemo integration for file-roller
   ];
 
   # -------------------------------------------------------------------

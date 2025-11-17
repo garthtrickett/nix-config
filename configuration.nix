@@ -169,6 +169,7 @@
     waybar-tailscale-status
     tailscale-exit-node-selector
     envsubst
+    postgresql 
   ];
   programs.zsh.enable = true;
   programs.firefox.enable = true;

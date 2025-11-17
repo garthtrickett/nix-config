@@ -14,6 +14,7 @@
     dprint
     shfmt
     nodePackages.prettier
+    nixpkgs-fmt # Stays the same, this is the correct formatter
 
     # --- Language Servers ---
     # Web Development
@@ -27,6 +28,7 @@
     bash-language-server
     rust-analyzer
     gopls # For Go
+    nil   # CORRECTED: Replaced rnix-lsp with the modern 'nil'
   ];
 
   # -------------------------------------------------------------------
@@ -148,6 +150,12 @@
     name = "php"
     language-servers = [ "intelephense" ]
     formatter = { command = 'npx', args = ["prettier", "--parser", "php"] }
+    auto-format = true
+    
+    [[language]]
+    name = "nix"
+    language-servers = ["nil"] # CORRECTED: Changed rnix-lsp to nil
+    formatter = { command = "nixpkgs-fmt" }
     auto-format = true
   '';
 }

@@ -51,16 +51,6 @@
         "SUPER_SHIFT, 8, movetoworkspace, 8"
         "SUPER_SHIFT, 9, movetoworkspace, 9"
 
-        # === FULLY CORRECTED KEYBINDS (using ''...'' and -a) ===
-        #
-        # [SUPER + N] Start recording WITH default mic
-        ''SUPER, N, exec, sh -c "rm -f ''${HOME}/Videos/video.mp4" ''${HOME}/Videos/video_boosted.mp4" && wf-recorder -a -f ''${HOME}/Videos/video.mp4"''
-        #
-        # [SUPER + ,] Start recording WITHOUT audio
-        ''SUPER, comma, exec, sh -c "rm -f ''${HOME}/Videos/video.mp4" ''${HOME}/Videos/video_boosted.mp4" && wf-recorder -f ''${HOME}/Videos/video.mp4"''
-        #
-        # [SUPER + SHIFT + N] Stop recording and boost audio
-        ''SUPER_SHIFT, N, exec, sh -c "killall -s SIGINT wf-recorder && ffmpeg -i ''${HOME}/Videos/video.mp4" -vcodec copy -af "volume=8.0" ''${HOME}/Videos/video_boosted.mp4"''
       ];
       input = {
         kb_layout = "us";
