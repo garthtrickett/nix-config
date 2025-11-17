@@ -38,7 +38,7 @@
   # -------------------------------------------------------------------
   services.xserver.enable = true;
   # This is the line that was causing the issue. It has been set to false.
-  services.desktopManager.gnome.enable = false; # <-- MODIFIED
+  services.desktopManager.gnome.enable = false;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
 
@@ -51,6 +51,11 @@
       pkgs.xdg-desktop-portal-hyprland
       pkgs.xdg-desktop-portal-gtk
     ];
+    # This setting resolves the evaluation warning by specifying the
+    # preferred order for portal backends.
+    config.common = {
+      default = [ "hyprland" "gtk" ];
+    };
   };
 
   # -------------------------------------------------------------------
@@ -90,7 +95,7 @@
   users.users.garth = {
     isNormalUser = true;
     # The 'networkmanager' group has been removed from here.
-    extraGroups = [ "wheel" "input" ]; # <-- MODIFIED
+    extraGroups = [ "wheel" "input" ];
     shell = pkgs.zsh;
     packages = with pkgs; [ tree gnome-tweaks ];
   };
