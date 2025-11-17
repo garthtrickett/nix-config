@@ -30,7 +30,7 @@
   # -------------------------------------------------------------------
   services.hyprsunset = {
     enable = true;
-    settings = 
+    settings =
       {
 
   profile = [
@@ -45,7 +45,7 @@
     }
   ];
 };
-      
+
   };
 
   # -------------------------------------------------------------------
@@ -346,15 +346,18 @@
   };
 
   xdg.configFile."zellij/config.kdl".text = ''
-    theme "catppuccin-macchiato"
-    pane_frames false
-    default_shell "zsh"
-    copy_on_select true
-    layout "default"
-    show_startup_tips false
+    theme "catppuccin-macchiato";
+    pane_frames false;
+    default_shell "zsh";
+    copy_on_select true;
+    layout "default";
+    show_startup_tips false;
+    unbind "Alt h" "Alt l" "Alt t" "Alt e";
+
     keybinds {
-        unbind "Alt h" "Alt l" "Alt t" "Alt e"
-        locked { bind "Ctrl a" { SwitchToMode "Normal"; } }
+        locked {
+            bind "Ctrl a" { SwitchToMode "Normal"; }
+        }
         normal {
             bind "n" { NewTab; SwitchToMode "Locked"; }
             bind "x" { CloseTab; SwitchToMode "Locked"; }
@@ -382,6 +385,9 @@
                     format_left ""
                 }
             }
+        }
+        tab {
+            pane
         }
     }
   '';
