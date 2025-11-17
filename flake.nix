@@ -1,3 +1,7 @@
+############################################################
+##########              START flake.nix              ##########
+############################################################
+
 # /etc/nixos/flake.nix
 {
   description = "NixOS configuration for Apple Silicon (Unstable)";
@@ -18,14 +22,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # ADD THIS INPUT
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, sops-nix, ... }@inputs: # ADD sops-nix HERE
+  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, sops-nix, ... }@inputs:
   let
     system = "aarch64-linux";
     pkgs = import nixpkgs {
@@ -50,7 +53,7 @@
         apple-silicon.nixosModules.apple-silicon-support
         catppuccin.nixosModules.catppuccin
         home-manager.nixosModules.home-manager
-        sops-nix.nixosModules.sops # ADD THIS SYSTEM-LEVEL MODULE
+        sops-nix.nixosModules.sops
 
         # Import local NixOS configuration
         ./configuration.nix
@@ -63,7 +66,7 @@
             imports = [
               ./home-garth.nix
               catppuccin.homeModules.catppuccin
-              sops-nix.homeManagerModules.sops # ADD THIS HOME-MANAGER MODULE
+              sops-nix.homeManagerModules.sops
             ];
             home.stateVersion = "25.11";
           };

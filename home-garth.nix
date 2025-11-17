@@ -1,3 +1,7 @@
+############################################################
+##########          START home-garth.nix          ##########
+############################################################
+
 # /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
@@ -10,26 +14,27 @@
     ./modules/home/terminal.nix
     ./modules/home/helix.nix
   ];
+  
   # -------------------------------------------------------------------
   # 🔑 SECRETS MANAGEMENT WITH SOPS
   # -------------------------------------------------------------------
+  # This block is required so that Home Manager knows how to
+  # decrypt its own secrets. It does not inherit this from the
+  # system configuration.
   sops = {
-    # CORRECT: This MUST be an absolute path to the private key on your filesystem.
-    # It is read by the system at runtime and is designed to be outside the Nix store.
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
-
-    # CORRECT: This SHOULD be a relative path to the encrypted secrets file
-    # within your flake directory.
-    # This file is safe to be in the Nix store.
     defaultSopsFile = ./secrets.yaml;
-    # Define the secret you want to manage.
+    
+    # Define the user-specific secrets that Home Manager needs.
     secrets.GEMINI_API_KEY = {};
   };
+  
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
   services.disable-touchpad-while-typing.enable = true;
+
   # -------------------------------------------------------------------
   # 🌇 HYPRSUNSET SERVICE (Using the modern 'settings' option)
   # -------------------------------------------------------------------
@@ -50,6 +55,7 @@
         ];
       };
   };
+
   # -------------------------------------------------------------------
   # 📝 ZSH SHELL
   # -------------------------------------------------------------------
@@ -75,6 +81,7 @@
       }
     '';
   };
+
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
@@ -111,10 +118,10 @@
     sops # Add sops and age to ensure they are installed
     age
     
-    # === ADDED PACKAGES ===
     wf-recorder
     ffmpeg
   ];
+
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
   # -------------------------------------------------------------------

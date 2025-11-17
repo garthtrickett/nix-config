@@ -28,15 +28,12 @@
     ];
   };
 
-  # REMOVE THE nixpkgs.config BLOCK THAT WAS HERE.
-  # It has been moved to flake.nix
-
   # -------------------------------------------------------------------
   # ⚙️ GENERAL SYSTEM SETTINGS
   # -------------------------------------------------------------------
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
-  # This line maps your custom domain to localhost.
+  
   networking.extraHosts = ''
     127.0.0.1 garth.localhost.com.au
   '';
@@ -45,10 +42,9 @@
   console.keyMap = "us";
 
   # -------------------------------------------------------------------
-  # 🖥️ GRAPHICAL ENVIRONMENT (HYPRLAND & GNOME)
+  # 🖥️ GRAPHICAL ENVIRONMENT (HYPRLAND)
   # -------------------------------------------------------------------
   services.xserver.enable = true;
-  # This is the line that was causing the issue. It has been set to false.
   services.desktopManager.gnome.enable = false;
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
@@ -62,8 +58,6 @@
       pkgs.xdg-desktop-portal-hyprland
       pkgs.xdg-desktop-portal-gtk
     ];
-    # This setting resolves the evaluation warning by specifying the
-    # preferred order for portal backends.
     config.common = {
       default = [ "hyprland" "gtk" ];
     };
@@ -78,6 +72,11 @@
   services.xserver.xkb.layout = "us";
   services.xserver.xkb.options = "eurosign:e";
   services.printing.enable = true;
+
+  # -------------------------------------------------------------------
+  # 🐳 VIRTUALISATION (DOCKER)
+  # -------------------------------------------------------------------
+  virtualisation.docker.enable = true;
 
   # -------------------------------------------------------------------
   # 🔊 AUDIO, 🔋 BATTERY, 👤 USER
@@ -103,20 +102,46 @@
     threshold = 80;
   };
 
+  # Explicitly create the tailscaled user and group to prevent activation errors with sops.
+  users.groups.tailscaled = {};
+  users.users.tailscaled = {
+    group = "tailscaled";
+    isSystemUser = true;
+  };
+
   users.users.garth = {
     isNormalUser = true;
-    # The 'networkmanager' group has been removed from here.
-    extraGroups = [ "wheel" "input" ];
+    extraGroups = [ "wheel" "input" "docker" ];
     shell = pkgs.zsh;
-    packages = with pkgs; [ tree gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
 
   # -------------------------------------------------------------------
+  # 🔑 SECRETS MANAGEMENT (SYSTEM-WIDE)
+  # -------------------------------------------------------------------
+  sops = {
+    defaultSopsFile = ./secrets.yaml;
+    age.keyFile = "/home/garth/.config/sops/age/keys.txt";
+  };
+
+  # This defines the tailscale secret for the system to use.
+  sops.secrets.tailscale_auth_key = {
+    owner = "tailscaled";
+    group = "tailscaled";
+  };
+
+  # -------------------------------------------------------------------
+  #  VPN (TAILSCALE)
+  # -------------------------------------------------------------------
+  services.tailscale = {
+    enable = true;
+    authKeyFile = config.sops.secrets.tailscale_auth_key.path;
+  };
+
+  # -------------------------------------------------------------------
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
   # -------------------------------------------------------------------
-  # The toggle script is installed here so you can call it from the command line.
-  environment.systemPackages = with pkgs; [ git vim wget keyd toggle-battery-limit ];
+  environment.systemPackages = with pkgs; [ git vim wget keyd toggle-battery-limit tailscale ];
   programs.zsh.enable = true;
   programs.firefox.enable = true;
   programs.mtr.enable = true;
