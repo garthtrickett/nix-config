@@ -1,43 +1,14 @@
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
-let
-  # The Waybar status script provides visual feedback.
-  waybar-battery-status = pkgs.writeShellScriptBin "waybar-battery-status" ''
-    #!${pkgs.stdenv.shell}
-    
-    find_threshold_path() {
-      if [ -f "/sys/class/power_supply/macsmc-battery/charge_control_end_threshold" ]; then
-        echo "/sys/class/power_supply/macsmc-battery/charge_control_end_threshold"
-      elif [ -f "/sys/class/power_supply/battery/charge_control_end_threshold" ]; then
-        echo "/sys/class/power_supply/battery/charge_control_end_threshold"
-      else
-        exit 1
-      fi
-    }
-    THRESHOLD_PATH=$(find_threshold_path)
-    
-    if [ ! -f "$THRESHOLD_PATH" ]; then
-      exit 0
-    fi
-
-    CONFIGURED_LIMIT=${toString config.services.battery-limiter.threshold}
-    CURRENT_LIMIT=$(cat "$THRESHOLD_PATH")
-
-    if [ "$CURRENT_LIMIT" -eq "$CONFIGURED_LIMIT" ]; then
-      printf '{"text": "󰌾", "tooltip": "Battery charge limit is ON (%s%%)"}' "$CONFIGURED_LIMIT"
-    else
-      printf '{"text": "", "tooltip": "Battery charge limit is OFF"}'
-    fi
-  '';
-in
 {
   imports = [
     ./hardware-configuration.nix
     ./modules/battery-limiter.nix
-    ./modules/system/ydotool.nix # <-- NEW
-    ./modules/system/keyd.nix    # <-- NEW
-    ./modules/system/sudo.nix    # <-- NEW
+    ./modules/system/ydotool.nix
+    ./modules/system/keyd.nix
+    ./modules/system/sudo.nix
+    ./modules/system/waybar-scripts.nix # <-- NEW MODULE IMPORTED
   ];
 
   # -------------------------------------------------------------------
@@ -119,7 +90,8 @@ in
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "input" ];
     shell = pkgs.zsh;
-    packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks waybar-battery-status ];
+    # 'waybar-battery-status' is removed from here because it's now in environment.systemPackages
+    packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
 
