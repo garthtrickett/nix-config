@@ -29,8 +29,8 @@
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
   
-  # This is the crucial change for DNS resolution with Tailscale exit nodes
-  networking.resolvconf.enable = true;
+  # not needed anymore replaced by systemd-resolved
+  # networking.resolvconf.enable = true;
 
   networking.extraHosts = ''
     127.0.0.1 garth.localhost.com.au
@@ -151,6 +151,8 @@
   services.tailscale = {
     enable = true;
     authKeyFile = config.sops.secrets.tailscale_auth_key.path;
+    extraUpFlags = [ "--accept-dns=true" ]; 
+    useRoutingFeatures = "client"; 
   };
 
   # -------------------------------------------------------------------
