@@ -112,6 +112,33 @@
     };
   };
 
+
+  # -------------------------------------------------------------------
+  # 📦 USER PACKAGES
+  # -------------------------------------------------------------------
+
+  programs.starship = {
+    enable = true;
+
+    # Optional: Enable integration for your specific shell (often not needed if you enable the shell program in Home Manager too)
+    enableZshIntegration = true;
+    # enableBashIntegration = true; 
+
+    # 2. Configure Starship settings (optional, but recommended)
+    settings = {
+      # Replaces the content of your traditional ~/.config/starship.toml
+      add_newline = false; # Set to false to disable the blank line above the prompt
+
+      character = {
+        success_symbol = "[➜](bold green)";
+        error_symbol = "[✗](bold red)";
+      };
+
+      # Define the prompt format
+      format = "$all$line_break$character";
+    };
+  };
+
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
