@@ -48,6 +48,7 @@
         "SUPER_SHIFT, 8, movetoworkspace, 8"
         "SUPER_SHIFT, 9, movetoworkspace, 9"        
         "SUPER_SHIFT, R, exec, pkill -SIGINT wf-recorder"
+        "SUPER, B, exec, toggle-bt-headphones"
 
       ];
       input = {

@@ -146,6 +146,17 @@
   };
 
   # -------------------------------------------------------------------
+  # ⚙️ BLUETOOTH CONFIGURATION (Corrected)
+  # -------------------------------------------------------------------
+  # Enable the core Bluetooth daemon (under the 'hardware' attribute)
+  hardware.bluetooth.enable = true;
+  
+
+  # Enable the Blueman applet, which provides a graphical interface
+  # for managing Bluetooth devices from your system tray.
+  services.blueman.enable = true;
+
+  # -------------------------------------------------------------------
   #  VPN (TAILSCALE)
   # -------------------------------------------------------------------
   services.tailscale = {

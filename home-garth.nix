@@ -151,6 +151,7 @@
     file-roller # The archive manager
     nemo-fileroller # Nemo integration for file-roller
     pulseaudio
+    toggle-bt-headphones
   ];
 
   # -------------------------------------------------------------------
