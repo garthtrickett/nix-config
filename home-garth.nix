@@ -10,7 +10,6 @@
     ./modules/home/terminal.nix
     ./modules/home/helix.nix
   ];
-
   # -------------------------------------------------------------------
   # 🔑 SECRETS MANAGEMENT WITH SOPS
   # -------------------------------------------------------------------
@@ -20,19 +19,17 @@
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
 
     # CORRECT: This SHOULD be a relative path to the encrypted secrets file
-    # within your flake directory. This file is safe to be in the Nix store.
+    # within your flake directory.
+    # This file is safe to be in the Nix store.
     defaultSopsFile = ./secrets.yaml;
-
     # Define the secret you want to manage.
     secrets.GEMINI_API_KEY = {};
   };
-
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
   services.disable-touchpad-while-typing.enable = true;
-
   # -------------------------------------------------------------------
   # 🌇 HYPRSUNSET SERVICE (Using the modern 'settings' option)
   # -------------------------------------------------------------------
@@ -53,7 +50,6 @@
         ];
       };
   };
-
   # -------------------------------------------------------------------
   # 📝 ZSH SHELL
   # -------------------------------------------------------------------
@@ -63,7 +59,8 @@
     syntaxHighlighting.enable = true;
     initContent = ''
       # Load Gemini API Key from sops
-      if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
+      if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ];
+      then
         export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
       fi
 
@@ -74,10 +71,10 @@
           sudo nixos-rebuild switch --flake .#nixos "$@" &&
           echo "==> Returning to original directory"
         )
+ 
       }
     '';
   };
-
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
@@ -91,7 +88,10 @@
     alacritty
     zellij
     fuzzel
+    hyprshot
+    nemo
     swaylock
+    zathura
     swayidle
     brightnessctl
     wl-clipboard
@@ -100,6 +100,7 @@
     procps
     nerd-fonts.fira-code
     hyprsunset
+  
     libnotify
     gnugrep
     gnused
@@ -109,8 +110,11 @@
     unzip
     sops # Add sops and age to ensure they are installed
     age
+    
+    # === ADDED PACKAGES ===
+    wf-recorder
+    ffmpeg
   ];
-
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
   # -------------------------------------------------------------------
@@ -127,7 +131,6 @@
       WantedBy = [ "graphical-session.target" ];
     };
   };
-
   xdg.configFile."caddy/Caddyfile".text = ''
     {
       pki {
@@ -138,7 +141,6 @@
       reverse_proxy localhost:8080
     }
   '';
-
   systemd.user.services.caddy = {
     Unit = {
       Description = "Caddy Web Server";
