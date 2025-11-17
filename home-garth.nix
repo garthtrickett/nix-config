@@ -1,3 +1,7 @@
+############################################################
+##########          START home-garth.nix          ##########
+############################################################
+
 # /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
@@ -66,6 +70,7 @@
   [
     (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
     gh
+    jujutsu # The Git-compatible DVCS
     alacritty
     zellij
     fuzzel
