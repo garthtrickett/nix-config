@@ -1,3 +1,7 @@
+############################################################
+##########        START modules/home/waybar.nix        ##########
+############################################################
+
 # /etc/nixos/modules/home/waybar.nix
 { pkgs, ... }:
 
@@ -78,7 +82,8 @@
       #pulseaudio,
       #backlight,
       #custom-battery-limit,
-      #custom-logout {
+      #custom-logout,
+      #custom-tailscale {
           padding: 0 10px;
           margin: 5px 3px;
           color: #cdd6f4;
@@ -108,6 +113,14 @@
           }
       }
 
+      #custom-tailscale {
+        color: #f38ba8; /* Catppuccin Red for inactive */
+      }
+      
+      #custom-tailscale.active {
+        color: #a6e3a1; /* Catppuccin Green for active */
+      }
+
       #custom-logout {
         color: #f38ba8;
         margin-right: 5px;
@@ -119,7 +132,7 @@
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" ];
-        modules-right = [ "pulseaudio" "backlight" "network" "battery" "custom/battery-limit" "clock" "custom/logout" ];
+        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "network" "battery" "custom/battery-limit" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -165,6 +178,13 @@
           exec = "waybar-battery-status";
           return-type = "json";
           interval = 5;
+        };
+        "custom/tailscale" = {
+          "format" = "{}";
+          "return-type" = "json";
+          "interval" = 10;
+          "exec" = "waybar-tailscale-status";
+          "on-click" = "tailscale-exit-node-selector";
         };
         "custom/logout" = {
           format = "󰗼";

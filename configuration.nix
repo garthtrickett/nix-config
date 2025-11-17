@@ -1,7 +1,3 @@
-############################################################
-##########          START configuration.nix          ##########
-############################################################
-
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -11,7 +7,6 @@
     ./modules/battery-limiter.nix
     ./modules/system/ydotool.nix
     ./modules/system/keyd.nix
-    ./modules/system/sudo.nix
     ./modules/system/waybar-scripts.nix
   ];
 
@@ -34,6 +29,9 @@
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
   
+  # This is the crucial change for DNS resolution with Tailscale exit nodes
+  networking.resolvconf.enable = true;
+
   networking.extraHosts = ''
     127.0.0.1 garth.localhost.com.au
   '';
@@ -77,6 +75,25 @@
   # 🐳 VIRTUALISATION (DOCKER)
   # -------------------------------------------------------------------
   virtualisation.docker.enable = true;
+  
+  # -------------------------------------------------------------------
+  # 🛡️ SUDO RULES
+  # -------------------------------------------------------------------
+  security.sudo.extraRules = [
+    {
+      users = [ "garth" ];
+      commands = [
+        {
+          command = "${pkgs.toggle-battery-limit}/bin/toggle-battery-limit";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "${pkgs.tailscale}/bin/tailscale set --exit-node *";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
 
   # -------------------------------------------------------------------
   # 🔊 AUDIO, 🔋 BATTERY, 👤 USER
@@ -102,7 +119,6 @@
     threshold = 80;
   };
 
-  # Explicitly create the tailscaled user and group to prevent activation errors with sops.
   users.groups.tailscaled = {};
   users.users.tailscaled = {
     group = "tailscaled";
@@ -124,7 +140,6 @@
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
   };
 
-  # This defines the tailscale secret for the system to use.
   sops.secrets.tailscale_auth_key = {
     owner = "tailscaled";
     group = "tailscaled";
@@ -141,7 +156,18 @@
   # -------------------------------------------------------------------
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
   # -------------------------------------------------------------------
-  environment.systemPackages = with pkgs; [ git vim wget keyd toggle-battery-limit tailscale ];
+  environment.systemPackages = with pkgs; [ 
+    git 
+    vim 
+    wget 
+    keyd 
+    toggle-battery-limit 
+    tailscale
+    jq # Needed for the new robust scripts
+    waybar-tailscale-status
+    tailscale-exit-node-selector
+    envsubst
+  ];
   programs.zsh.enable = true;
   programs.firefox.enable = true;
   programs.mtr.enable = true;
