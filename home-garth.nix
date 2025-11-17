@@ -24,9 +24,9 @@
   sops = {
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
     defaultSopsFile = ./secrets.yaml;
-    
+
     # Define the user-specific secrets that Home Manager needs.
-    secrets.GEMINI_API_KEY = {};
+    secrets.GEMINI_API_KEY = { };
   };
 
   # -------------------------------------------------------------------
@@ -36,7 +36,7 @@
     EDITOR = "hx";
     VISUAL = "hx";
   };
-  
+
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
   # -------------------------------------------------------------------
@@ -101,9 +101,10 @@
         email = "garthtrickett@gmail.com";
       };
       aliases = {
-        sync = ''!bash -c "jj git fetch && jj rebase -r @ -d main@origin"'';
-        start = ''!bash -c "jj new main@origin"'';
-        sp = ''!bash -c "jj git fetch && jj rebase -r @ -d main@origin && jj git push --change=@"'';
+        # CORRECTED: Use the modern `util exec` syntax for shell commands.
+        sync = [ "util" "exec" "--" "bash" "-c" "jj git fetch && jj rebase -r @ -d main@origin" ];
+        start = [ "util" "exec" "--" "bash" "-c" "jj new main@origin" ];
+        sp = [ "util" "exec" "--" "bash" "-c" "jj git fetch && jj rebase -r @ -d main@origin && jj git push --change=@" ];
       };
       ui = {
         editor = "helix";
@@ -115,44 +116,45 @@
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs;
-  [
-    (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
-    gh
-    jujutsu # The Git-compatible DVCS
-    caddy   # The Caddy web server
-    mkcert  # For creating locally-trusted development certificates
-    alacritty
-    zellij
-    fuzzel
-    hyprshot
-    nemo
-    swaylock
-    zathura
-    swayidle
-    brightnessctl
-    wl-clipboard
-    xdg-user-dirs
-    ydotool
-    procps
-    nerd-fonts.fira-code
-    hyprsunset
-    libreoffice
-    libnotify
-    gnugrep
-    gnused
-    dunst
-    libinput
-    iwgtk
-    unzip
-    sops 
-    age
-    wf-recorder
-    ffmpeg
-    file-roller # The archive manager
-    nemo-fileroller # Nemo integration for file-roller
-    pulseaudio
-    toggle-bt-headphones
-  ];
+    [
+      (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
+      gh
+      jujutsu # The Git-compatible DVCS
+      caddy # The Caddy web server
+      mkcert # For creating locally-trusted development certificates
+      alacritty
+      zellij
+      fuzzel
+      hyprshot
+      nemo
+      swaylock
+      zathura
+      swayidle
+      brightnessctl
+      wl-clipboard
+      xdg-user-dirs
+      ydotool
+      procps
+      nerd-fonts.fira-code
+      hyprsunset
+      libreoffice
+      libnotify
+      gnugrep
+      gnused
+      dunst
+      libinput
+      iwgtk
+      unzip
+      sops
+      age
+      wf-recorder
+      ffmpeg
+      file-roller # The archive manager
+      nemo-fileroller # Nemo integration for file-roller
+      pulseaudio
+      toggle-bt-headphones
+      bun
+    ];
 
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
