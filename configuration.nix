@@ -8,7 +8,7 @@
     ./modules/system/ydotool.nix
     ./modules/system/keyd.nix
     ./modules/system/sudo.nix
-    ./modules/system/waybar-scripts.nix # <-- NEW MODULE IMPORTED
+    ./modules/system/waybar-scripts.nix
   ];
 
   # -------------------------------------------------------------------
@@ -29,7 +29,6 @@
   # -------------------------------------------------------------------
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
-  networking.networkmanager.enable = true;
   time.timeZone = "Australia/Sydney";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
@@ -38,7 +37,8 @@
   # 🖥️ GRAPHICAL ENVIRONMENT (HYPRLAND & GNOME)
   # -------------------------------------------------------------------
   services.xserver.enable = true;
-  services.desktopManager.gnome.enable = true;
+  # This is the line that was causing the issue. It has been set to false.
+  services.desktopManager.gnome.enable = false; # <-- MODIFIED
   services.displayManager.gdm.enable = true;
   services.displayManager.sessionPackages = [ pkgs.hyprland ];
 
@@ -58,6 +58,7 @@
   # -------------------------------------------------------------------
   hardware.asahi.peripheralFirmwareDirectory = ./firmware;
   networking.wireless.iwd = { enable = true; settings.General.EnableNetworkingConfiguration = true; };
+  services.resolved.enable = true;
   services.xserver.xkb.layout = "us";
   services.xserver.xkb.options = "eurosign:e";
   services.printing.enable = true;
@@ -88,10 +89,10 @@
 
   users.users.garth = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" "input" ];
+    # The 'networkmanager' group has been removed from here.
+    extraGroups = [ "wheel" "input" ]; # <-- MODIFIED
     shell = pkgs.zsh;
-    # 'waybar-battery-status' is removed from here because it's now in environment.systemPackages
-    packages = with pkgs; [ tree networkmanagerapplet gnome-tweaks ];
+    packages = with pkgs; [ tree gnome-tweaks ];
   };
   users.users.root.home = lib.mkForce "/root";
 

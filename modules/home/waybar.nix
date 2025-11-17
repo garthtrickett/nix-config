@@ -143,7 +143,7 @@
           format-ethernet = " {ipaddr}";
           format-disconnected = " Disconnected";
           tooltip-format = "{ifname} via {gwaddr}";
-          on-click = "nm-connection-editor";
+          on-click = "iwgtk"; # <-- MODIFIED
         };
         pulseaudio = {
           format = "{icon} {volume}%";

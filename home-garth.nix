@@ -93,5 +93,6 @@
     gnused
     dunst
     libinput
+    iwgtk # <-- NEW PACKAGE ADDED
   ];
 }
