@@ -17,18 +17,20 @@
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # ADD THIS INPUT
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, sops-nix, ... }@inputs: # ADD sops-nix HERE
   let
     system = "aarch64-linux";
     pkgs = import nixpkgs {
       inherit system;
-      # The overlays are now cleanly imported from the new file.
       overlays = [ (import ./overlays) ];
-
-      # ADD THIS CONFIG BLOCK HERE
-      # This is the correct place to allow unfree packages in a Flake.
       config = {
         allowUnfreePredicate = pkg: builtins.elem (pkg.pname or pkg.name) [
           "intelephense"
@@ -42,13 +44,13 @@
       specialArgs = { inherit inputs; };
 
       modules = [
-        # This makes our customized pkgs set available to all modules.
         { nixpkgs.pkgs = pkgs; }
 
         # Import NixOS modules from flakes
         apple-silicon.nixosModules.apple-silicon-support
         catppuccin.nixosModules.catppuccin
         home-manager.nixosModules.home-manager
+        sops-nix.nixosModules.sops # ADD THIS SYSTEM-LEVEL MODULE
 
         # Import local NixOS configuration
         ./configuration.nix
@@ -61,6 +63,7 @@
             imports = [
               ./home-garth.nix
               catppuccin.homeModules.catppuccin
+              sops-nix.homeManagerModules.sops # ADD THIS HOME-MANAGER MODULE
             ];
             home.stateVersion = "25.11";
           };

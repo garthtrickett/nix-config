@@ -27,7 +27,7 @@ firmware/kernelcache.release.mac13j
 # --- SECRETS ---
 # It is a very good practice to keep all secret files (passwords, API keys)
 # in a dedicated, untracked directory. Uncomment the line below if you create one.
-# /secrets/
+/secrets/
 
 # You might also use agenix for secrets management, in which case you would
 # want to ignore the private key file.

@@ -1,7 +1,3 @@
-############################################################
-##########          START home-garth.nix          ##########
-############################################################
-
 # /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
@@ -12,8 +8,24 @@
     ./modules/home/hyprland.nix
     ./modules/home/waybar.nix
     ./modules/home/terminal.nix
-    ./modules/home/helix.nix # This line is important
+    ./modules/home/helix.nix
   ];
+
+  # -------------------------------------------------------------------
+  # 🔑 SECRETS MANAGEMENT WITH SOPS
+  # -------------------------------------------------------------------
+  sops = {
+    # CORRECT: This MUST be an absolute path to the private key on your filesystem.
+    # It is read by the system at runtime and is designed to be outside the Nix store.
+    age.keyFile = "/home/garth/.config/sops/age/keys.txt";
+
+    # CORRECT: This SHOULD be a relative path to the encrypted secrets file
+    # within your flake directory. This file is safe to be in the Nix store.
+    defaultSopsFile = ./secrets.yaml;
+
+    # Define the secret you want to manage.
+    secrets.GEMINI_API_KEY = {};
+  };
 
   # -------------------------------------------------------------------
   # 🔑 SESSION SERVICES
@@ -28,20 +40,18 @@
     enable = true;
     settings =
       {
-
-  profile = [
-    {
-      time = "7:30";
-      identity = true;
-    }
-    {
-      time = "21:00";
-      temperature = 3000;
-      gamma = 0.8;
-    }
-  ];
-};
-
+        profile = [
+          {
+            time = "7:30";
+            identity = true;
+          }
+          {
+            time = "21:00";
+            temperature = 3000;
+            gamma = 0.8;
+          }
+        ];
+      };
   };
 
   # -------------------------------------------------------------------
@@ -52,6 +62,11 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
     initContent = ''
+      # Load Gemini API Key from sops
+      if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
+        export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
+      fi
+
       rebuild() {
         (
           cd /etc/nixos &&
@@ -92,13 +107,13 @@
     libinput
     iwgtk
     unzip
+    sops # Add sops and age to ensure they are installed
+    age
   ];
 
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
   # -------------------------------------------------------------------
-
-  # This systemd user service automates the 'mkcert -install' command.
   systemd.user.services.mkcert-install = {
     Unit = {
       Description = "Install mkcert's local CA into trust stores";
@@ -113,39 +128,29 @@
     };
   };
 
-  # This block declaratively creates the Caddyfile in ~/.config/caddy/Caddyfile
   xdg.configFile."caddy/Caddyfile".text = ''
-    # Global options block
     {
-      # This tells Caddy to use the mkcert local Certificate Authority (CA).
       pki {
         ca local
       }
     }
-
-    # Site configuration
     garth.localhost.com.au, *.garth.localhost.com.au {
-      # This rule proxies all requests to a local web service running on port 8080.
       reverse_proxy localhost:8080
     }
   '';
 
-  # This defines the Caddy service that runs for your user.
   systemd.user.services.caddy = {
     Unit = {
       Description = "Caddy Web Server";
-      # Ensures Caddy starts after the network is up and after mkcert has run.
       After = [ "network.target" "mkcert-install.service" ];
       Requires = [ "mkcert-install.service" ];
     };
     Service = {
-      # This tells Caddy to run and where to find its configuration file.
       ExecStart = "${pkgs.caddy}/bin/caddy run --config ${config.xdg.configHome}/caddy/Caddyfile";
       Restart = "always";
       RestartSec = 5;
     };
     Install = {
-      # This ensures the service starts automatically when you log in.
       WantedBy = [ "default.target" ];
     };
   };
