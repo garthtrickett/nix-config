@@ -1,3 +1,7 @@
+############################################################
+##########          START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -32,6 +36,10 @@
   # -------------------------------------------------------------------
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
+  # This line maps your custom domain to localhost.
+  networking.extraHosts = ''
+    127.0.0.1 garth.localhost.com.au
+  '';
   time.timeZone = "Australia/Sydney";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
