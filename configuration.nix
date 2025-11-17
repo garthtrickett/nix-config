@@ -24,6 +24,9 @@
     ];
   };
 
+  # REMOVE THE nixpkgs.config BLOCK THAT WAS HERE.
+  # It has been moved to flake.nix
+
   # -------------------------------------------------------------------
   # ⚙️ GENERAL SYSTEM SETTINGS
   # -------------------------------------------------------------------

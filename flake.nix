@@ -26,6 +26,14 @@
       inherit system;
       # The overlays are now cleanly imported from the new file.
       overlays = [ (import ./overlays) ];
+
+      # ADD THIS CONFIG BLOCK HERE
+      # This is the correct place to allow unfree packages in a Flake.
+      config = {
+        allowUnfreePredicate = pkg: builtins.elem (pkg.pname or pkg.name) [
+          "intelephense"
+        ];
+      };
     };
   in
   {

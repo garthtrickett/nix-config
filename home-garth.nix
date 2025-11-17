@@ -8,6 +8,7 @@
     ./modules/home/hyprland.nix
     ./modules/home/waybar.nix
     ./modules/home/terminal.nix
+    ./modules/home/helix.nix # This line is important
   ];
 
   # -------------------------------------------------------------------
@@ -40,19 +41,8 @@
   };
 
   # -------------------------------------------------------------------
-  # 📝 HELIX TEXT EDITOR & ZSH SHELL
+  # 📝 ZSH SHELL
   # -------------------------------------------------------------------
-  programs.helix = {
-    enable = true;
-    settings = {
-      editor = {
-        line-number = "relative";
-        cursorline = true;
-        bufferline = "always";
-      };
-    };
-  };
-
   programs.zsh = {
     enable = true;
     autosuggestion.enable = true;
@@ -93,6 +83,7 @@
     gnused
     dunst
     libinput
-    iwgtk # <-- NEW PACKAGE ADDED
+    iwgtk
+    unzip
   ];
 }
