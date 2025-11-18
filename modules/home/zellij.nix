@@ -73,9 +73,9 @@
                     border_enabled "false"
                     hide_frame_for_single_pane "true"
 
-                    // FINAL, FINAL CORRECTION: Use the tmux-like #[...] styling syntax
-                    tab_normal "#[fg=overlay1,bg=mantle] {name} "
-                    tab_active "#[fg=mantle,bg=blue,bold] {name} "
+                    // Set the format for normal and active tabs to include the index
+                    tab_normal "#[fg=overlay1,bg=mantle] {index} {name} "
+                    tab_active "#[fg=mantle,bg=blue,bold] {index}. {name} "
 
                     command_git_branch_command "git rev-parse --abbrev-ref HEAD"
                     command_git_branch_format "#[fg=text,bg=mantle] {stdout} "
