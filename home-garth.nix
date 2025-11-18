@@ -1,9 +1,5 @@
-############################################################
-##########          START home-garth.nix          ##########
-############################################################
-
 # /etc/nixos/home-garth.nix
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   imports = [
@@ -14,12 +10,12 @@
     ./modules/home/zellij.nix # CORRECTED: Use the dedicated zellij module
     ./modules/home/helix.nix
   ];
-
   # -------------------------------------------------------------------
   # 🔑 SECRETS MANAGEMENT WITH SOPS
   # -------------------------------------------------------------------
   # This block is required so that Home Manager knows how to
-  # decrypt its own secrets. It does not inherit this from the
+  # decrypt its own secrets.
+  # It does not inherit this from the
   # system configuration.
   sops = {
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
@@ -28,7 +24,6 @@
     # Define the user-specific secrets that Home Manager needs.
     secrets.GEMINI_API_KEY = { };
   };
-
   # -------------------------------------------------------------------
   # ⚙️ GLOBAL ENVIRONMENT & SESSION VARIABLES
   # -------------------------------------------------------------------
@@ -66,7 +61,6 @@
         ];
       };
   };
-
   # -------------------------------------------------------------------
   # 📝 ZSH SHELL
   # -------------------------------------------------------------------
@@ -90,9 +84,36 @@
         )
  
       }
+
+      # --- ZELLIJ AUTO-RENAMING LOGIC ---
+      # Only execute if we are inside a Zellij session
+      if [[ -n "$ZELLIJ" ]]; then
+        autoload -Uz add-zsh-hook
+
+        # Function to run before a command is executed
+        function zellij_tab_name_update_pre() {
+          local cmd_line=$1
+          local cmd_name=''${cmd_line%% *} # Extract the first word (command)
+
+          if [[ -n "$cmd_name" && "$cmd_name" != "z" ]]; then
+            # Use nohup and &! to run in background without hanging the shell
+            nohup zellij action rename-tab "$cmd_name" >/dev/null 2>&1 &!
+          fi
+        }
+
+        # Function to run before the prompt is displayed (idle/post-exec)
+        function zellij_tab_name_update_post() {
+          # Rename tab to current directory (equivalent to fish's prompt_pwd)
+          # %1~ expands to current directory, or ~ if at home
+          local current_dir=$(print -P "%1~") 
+          nohup zellij action rename-tab "$current_dir" >/dev/null 2>&1 &!
+        }
+
+        add-zsh-hook preexec zellij_tab_name_update_pre
+        add-zsh-hook precmd zellij_tab_name_update_post
+      fi
     '';
   };
-
   # -------------------------------------------------------------------
   #  Git & Jujutsu Configuration
   # -------------------------------------------------------------------
@@ -114,15 +135,12 @@
       };
     };
   };
-
-
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
 
   programs.starship = {
     enable = true;
-
     # Optional: Enable integration for your specific shell (often not needed if you enable the shell program in Home Manager too)
     enableZshIntegration = true;
     # enableBashIntegration = true; 
@@ -130,7 +148,8 @@
     # 2. Configure Starship settings (optional, but recommended)
     settings = {
       # Replaces the content of your traditional ~/.config/starship.toml
-      add_newline = false; # Set to false to disable the blank line above the prompt
+      add_newline = false;
+      # Set to false to disable the blank line above the prompt
 
       character = {
         success_symbol = "[➜](bold green)";
@@ -141,7 +160,6 @@
       format = "$all$line_break$character";
     };
   };
-
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
@@ -159,6 +177,7 @@
       hyprshot
       nemo
       swaylock
+
       zathura
       swayidle
       brightnessctl
@@ -176,6 +195,7 @@
       libinput
       iwgtk
       unzip
+
       sops
       age
       wf-recorder
@@ -187,7 +207,6 @@
       bun
       gemini-cli
     ];
-
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
   # -------------------------------------------------------------------
