@@ -58,7 +58,7 @@ in
                   ${toggleScript}/bin/toggle-touchpad disable
 
                   (
-                    sleep 0.3
+                    sleep 0.35
                     ${toggleScript}/bin/toggle-touchpad enable
                     rm -f "$PID_FILE"
                   ) &
