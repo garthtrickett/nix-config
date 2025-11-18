@@ -181,6 +181,7 @@
       pulseaudio
       toggle-bt-headphones
       bun
+      gemini-cli
     ];
 
   # -------------------------------------------------------------------
