@@ -132,7 +132,7 @@
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" ];
-        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "network" "battery" "custom/battery-limit" "clock" "custom/logout" ];
+        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "network" "custom/battery" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -145,12 +145,6 @@
         };
         cpu = { interval = 10; format = " {usage}%"; tooltip = false; };
         memory = { interval = 10; format = " {percentage}%"; };
-        battery = {
-          format = "{icon} {capacity}%";
-          format-charging = " {capacity}%";
-          format-icons = [ "" "" "" "" "" ];
-          states = { good = 90; warning = 30; critical = 15; };
-        };
         network = {
           format-wifi = " {essid}";
           format-ethernet = " {ipaddr}";
@@ -173,9 +167,9 @@
           on-scroll-up = "brightnessctl set 5%+";
           on-scroll-down = "brightnessctl set 5%-";
         };
-        "custom/battery-limit" = {
+        "custom/battery" = {
           format = "{}";
-          exec = "waybar-battery-status";
+          exec = "waybar-battery-combined-status";
           return-type = "json";
           interval = 5;
         };

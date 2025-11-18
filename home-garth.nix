@@ -35,6 +35,7 @@
   home.sessionVariables = {
     EDITOR = "hx";
     VISUAL = "hx";
+    MOZ_WEBRENDER = "0";
   };
 
   # -------------------------------------------------------------------
