@@ -11,7 +11,7 @@
     ./modules/home/theme.nix
     ./modules/home/hyprland.nix
     ./modules/home/waybar.nix
-    ./modules/home/terminal.nix
+    ./modules/home/zellij.nix # CORRECTED: Use the dedicated zellij module
     ./modules/home/helix.nix
   ];
 
@@ -35,7 +35,9 @@
   home.sessionVariables = {
     EDITOR = "hx";
     VISUAL = "hx";
-    MOZ_WEBRENDER = "0";
+    MOZ_ENABLE_WAYLAND = "1";
+
+
   };
 
   # -------------------------------------------------------------------
@@ -152,6 +154,7 @@
       mkcert # For creating locally-trusted development certificates
       alacritty
       zellij
+      zjstatus # ADDED: Ensure zjstatus is in the environment
       fuzzel
       hyprshot
       nemo

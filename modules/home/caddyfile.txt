@@ -1,0 +1,8 @@
+{
+  pki {
+    ca local
+  }
+}
+garth.localhost.com.au, *.garth.localhost.com.au {
+  reverse_proxy localhost:8080
+}

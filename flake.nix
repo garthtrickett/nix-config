@@ -26,52 +26,62 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    zjstatus = {
+      url = "github:dj95/zjstatus";
+    };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, sops-nix, ... }@inputs:
-  let
-    system = "aarch64-linux";
-    pkgs = import nixpkgs {
-      inherit system;
-      overlays = [ (import ./overlays) ];
-      config = {
-        allowUnfreePredicate = pkg: builtins.elem (pkg.pname or pkg.name) [
-          "intelephense"
+    outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, sops-nix, zjstatus, ... }@inputs:
+    let
+      system = "aarch64-linux";
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = with inputs; [
+          (import ./overlays)
+          (final: prev: {
+            zjstatus = zjstatus.packages.${prev.system}.default;
+          })
+        ];
+        config = {
+          allowUnfreePredicate = pkg: builtins.elem (pkg.pname or pkg.name) [
+            "intelephense"
+          ];
+        };
+      };
+    in
+    {
+      nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
+  
+        modules = [
+          { nixpkgs.pkgs = pkgs; }
+  
+          # Import NixOS modules from flakes
+          apple-silicon.nixosModules.apple-silicon-support
+          catppuccin.nixosModules.catppuccin
+          home-manager.nixosModules.home-manager
+          sops-nix.nixosModules.sops
+  
+          # Import local NixOS configuration
+          ./configuration.nix
+  
+          # Configure Home Manager
+          {
+            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.useGlobalPkgs = true;
+                      home-manager.users.garth = {
+                        imports = [
+                          ./home-garth.nix
+                          catppuccin.homeModules.catppuccin
+                          sops-nix.homeManagerModules.sops
+                        ];
+                        home.stateVersion = "25.11";
+                      };          }
         ];
       };
+  
+      homeManagerModules.home-garth-test = import (inputs.self + "/home-garth-test.nix") { inherit pkgs inputs; lib = inputs.nixpkgs.lib; };
     };
-  in
-  {
-    nixosConfigurations.nixos = nixpkgs.lib.nixosSystem {
-      inherit system;
-      specialArgs = { inherit inputs; };
-
-      modules = [
-        { nixpkgs.pkgs = pkgs; }
-
-        # Import NixOS modules from flakes
-        apple-silicon.nixosModules.apple-silicon-support
-        catppuccin.nixosModules.catppuccin
-        home-manager.nixosModules.home-manager
-        sops-nix.nixosModules.sops
-
-        # Import local NixOS configuration
-        ./configuration.nix
-
-        # Configure Home Manager
-        {
-          home-manager.extraSpecialArgs = { inherit inputs; };
-          home-manager.useGlobalPkgs = true;
-          home-manager.users.garth = {
-            imports = [
-              ./home-garth.nix
-              catppuccin.homeModules.catppuccin
-              sops-nix.homeManagerModules.sops
-            ];
-            home.stateVersion = "25.11";
-          };
-        }
-      ];
-    };
-  };
-}
+  }
