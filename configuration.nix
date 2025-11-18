@@ -8,6 +8,7 @@
     ./modules/system/ydotool.nix
     ./modules/system/keyd.nix
     ./modules/system/waybar-scripts.nix
+    ./modules/system/keyboard-backlight-toggle.nix
   ];
 
   # -------------------------------------------------------------------
@@ -180,7 +181,8 @@
     waybar-tailscale-status
     tailscale-exit-node-selector
     envsubst
-    postgresql 
+    postgresql
+    brightnessctl 
   ];
   programs.zsh.enable = true;
   programs.firefox.enable = true;

@@ -9,7 +9,9 @@
     enable = true;
     keyboards."default" = {
       ids = [ "*" ];
-      settings.main = { capslock = "overload(control, escape)"; };
+      settings.main = {
+        capslock = "overload(control, escape)";
+      };
     };
   };
 }
