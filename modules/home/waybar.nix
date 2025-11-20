@@ -131,7 +131,7 @@
         layer = "top";
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
-        modules-center = [ "cpu" "memory" ];
+        modules-center = [ "cpu" "memory" "network#speed" ];
         modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "network" "custom/battery" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
@@ -145,6 +145,12 @@
         };
         cpu = { interval = 10; format = " {usage}%"; tooltip = false; };
         memory = { interval = 10; format = " {percentage}%"; };
+        "network#speed" = {
+          interval = 1;
+          format = "{bandwidthDownBytes}   {bandwidthUpBytes} ";
+          format-disconnected = "";
+          tooltip = false;
+        };
         network = {
           format-wifi = " {essid}";
           format-ethernet = " {ipaddr}";
