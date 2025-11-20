@@ -195,6 +195,7 @@
       libinput
       iwgtk
       unzip
+      vlc
 
       sops
       age

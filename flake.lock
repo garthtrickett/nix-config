@@ -54,6 +54,28 @@
         "type": "github"
       }
     },
+    "firefox-nightly": {
+      "inputs": {
+        "flake-compat": "flake-compat_2",
+        "lib-aggregate": "lib-aggregate",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1763637530,
+        "narHash": "sha256-YUv8wgiLPZ/hZdD7XHyhZXoMi95xE5a9LBqnf7C8QXk=",
+        "owner": "nix-community",
+        "repo": "flake-firefox-nightly",
+        "rev": "958e4cc964a7735ae724a7fc13c4cd084fac2e0b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "flake-firefox-nightly",
+        "type": "github"
+      }
+    },
     "flake-compat": {
       "locked": {
         "lastModified": 1746162366,
@@ -69,9 +91,42 @@
         "type": "github"
       }
     },
+    "flake-compat_2": {
+      "locked": {
+        "lastModified": 1761640442,
+        "narHash": "sha256-AtrEP6Jmdvrqiv4x2xa5mrtaIp3OEe8uBYCDZDS+hu8=",
+        "owner": "nix-community",
+        "repo": "flake-compat",
+        "rev": "4a56054d8ffc173222d09dad23adf4ba946c8884",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_2"
       },
       "locked": {
         "lastModified": 1731533236,
@@ -128,6 +183,25 @@
         "type": "github"
       }
     },
+    "lib-aggregate": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs-lib": "nixpkgs-lib"
+      },
+      "locked": {
+        "lastModified": 1754828166,
+        "narHash": "sha256-i7c+fpXVsnvj2+63Gl3YfU1hVyxbLeqeFj55ZBZACWI=",
+        "owner": "nix-community",
+        "repo": "lib-aggregate",
+        "rev": "f01c8d121a3100230612be96e4ac668e15eafb77",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "lib-aggregate",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1762111121,
@@ -141,6 +215,21 @@
         "owner": "NixOS",
         "ref": "nixos-unstable",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1754788789,
+        "narHash": "sha256-x2rJ+Ovzq0sCMpgfgGaaqgBSwY+LST+WbZ6TytnT9Rk=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "a73b9c743612e4244d865a2fdee11865283c04e6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
         "type": "github"
       }
     },
@@ -180,6 +269,7 @@
       "inputs": {
         "apple-silicon": "apple-silicon",
         "catppuccin": "catppuccin",
+        "firefox-nightly": "firefox-nightly",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_2",
         "sops-nix": "sops-nix",
@@ -243,6 +333,21 @@
         "type": "github"
       }
     },
+    "systems_2": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
     "zen-browser": {
       "inputs": {
         "home-manager": "home-manager_2",
@@ -267,7 +372,7 @@
     "zjstatus": {
       "inputs": {
         "crane": "crane",
-        "flake-utils": "flake-utils",
+        "flake-utils": "flake-utils_2",
         "nixpkgs": "nixpkgs_3",
         "rust-overlay": "rust-overlay"
       },

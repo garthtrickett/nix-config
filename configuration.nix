@@ -1,3 +1,7 @@
+############################################################
+##########          START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -29,7 +33,7 @@
   # -------------------------------------------------------------------
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
-  
+
   # not needed anymore replaced by systemd-resolved
   # networking.resolvconf.enable = true;
 
@@ -76,7 +80,7 @@
   # 🐳 VIRTUALISATION (DOCKER)
   # -------------------------------------------------------------------
   virtualisation.docker.enable = true;
-  
+
   # -------------------------------------------------------------------
   # 🛡️ SUDO RULES
   # -------------------------------------------------------------------
@@ -106,7 +110,36 @@
   services.pipewire = {
     enable = true;
     alsa.enable = true;
+    alsa.support32Bit = true;
     pulse.enable = true;
+    wireplumber.enable = true;
+
+    # FIX 1: Audio Quantums & Rate
+    # Forcing a specific rate prevents sample-rate switching pops.
+    # Higher quantums prevent buffer underruns (crackling).
+    extraConfig.pipewire."99-input-latency" = {
+      "context.properties" = {
+        "default.clock.rate" = 48000;
+        "default.clock.quantum" = 1024;
+        "default.clock.min-quantum" = 1024;
+        "default.clock.max-quantum" = 4096;
+      };
+    };
+
+    # FIX 2: WirePlumber Bluetooth Configuration
+    # Replaced the old pipewire module config with modern WirePlumber logic.
+    wireplumber.extraConfig = {
+      "10-bluez" = {
+        "monitor.bluez.properties" = {
+          "bluez5.enable-sbc-xq" = true;
+          "bluez5.enable-msbc" = true;
+          "bluez5.enable-hw-volume" = true;
+          "bluez5.headroom" = 8192;
+          # Switched priority: SBC-XQ is often more stable on Linux/Asahi than AAC
+          "bluez5.codecs" = [ "sbc_xq" "aac" "sbc" ];
+        };
+      };
+    };
   };
   security.rtkit.enable = true;
 
@@ -124,7 +157,7 @@
     threshold = 80;
   };
 
-  users.groups.tailscaled = {};
+  users.groups.tailscaled = { };
   users.users.tailscaled = {
     group = "tailscaled";
     isSystemUser = true;
@@ -153,12 +186,22 @@
   # -------------------------------------------------------------------
   # ⚙️ BLUETOOTH CONFIGURATION (Corrected)
   # -------------------------------------------------------------------
-  # Enable the core Bluetooth daemon (under the 'hardware' attribute)
   hardware.bluetooth.enable = true;
-  
 
-  # Enable the Blueman applet, which provides a graphical interface
-  # for managing Bluetooth devices from your system tray.
+  hardware.bluetooth.settings = {
+    General = {
+      Experimental = "true";
+      AutoEnable = "true";
+      # FastConnectable improves reconnection reliability and audio handshakes
+      FastConnectable = "true";
+    };
+    Policy = {
+      AutoEnable = "true";
+      AutoConnect = "true";
+    };
+  };
+
+  # Enable the Blueman applet
   services.blueman.enable = true;
 
   # -------------------------------------------------------------------
@@ -167,29 +210,29 @@
   services.tailscale = {
     enable = true;
     authKeyFile = config.sops.secrets.tailscale_auth_key.path;
-    extraUpFlags = [ "--accept-dns=true" ]; 
-    useRoutingFeatures = "client"; 
+    extraUpFlags = [ "--accept-dns=true" ];
+    useRoutingFeatures = "client";
   };
 
   # -------------------------------------------------------------------
   # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
   # -------------------------------------------------------------------
-  environment.systemPackages = with pkgs; [ 
-    git 
-    vim 
-    wget 
-    keyd 
-    toggle-battery-limit 
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+    wget
+    keyd
+    toggle-battery-limit
     tailscale
-    jq # Needed for the new robust scripts
+    jq
     waybar-tailscale-status
     tailscale-exit-node-selector
     envsubst
     postgresql
-    brightnessctl 
+    brightnessctl
+    firefox-nightly-bin
   ];
   programs.zsh.enable = true;
-  programs.firefox.enable = true;
   programs.mtr.enable = true;
   programs.gnupg.agent = { enable = true; enableSSHSupport = true; };
   services.openssh.enable = true;
