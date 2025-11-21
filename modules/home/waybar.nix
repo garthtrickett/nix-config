@@ -152,11 +152,16 @@
           tooltip = false;
         };
         network = {
+          # Fixed: Force interval to 1s and explicitly target wireless interfaces.
+          # This prevents Waybar from iterating over all interfaces (loopback, docker, etc)
+          # which can cause delays in updating the correct wifi status.
+          interface = "wlan*";
+          interval = 1;
           format-wifi = " {essid}";
           format-ethernet = " {ipaddr}";
           format-disconnected = " Disconnected";
           tooltip-format = "{ifname} via {gwaddr}";
-          on-click = "iwgtk"; # <-- MODIFIED
+          on-click = "iwgtk";
         };
         pulseaudio = {
           format = "{icon} {volume}%";

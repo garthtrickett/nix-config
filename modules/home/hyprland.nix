@@ -21,6 +21,7 @@
         "SUPER_SHIFT, O, exec, fuzzel"
         "SUPER_SHIFT,S,exec,hyprshot --mode region --output ''$HOME/Screenshots/$(date +''%Y-%m-%d_%H-%M-%S'').png'' --copy"
         "SUPER, E, exec, nemo"
+        "SUPER, F, fullscreen,"
         "SUPER_, Q, killactive,"
         "SUPER, H, movefocus, l"
         "SUPER, L, movefocus, r"
@@ -41,12 +42,12 @@
         "SUPER_SHIFT, 1, movetoworkspace, 1"
         "SUPER_SHIFT, 2, movetoworkspace, 2"
         "SUPER_SHIFT, 3, movetoworkspace, 3"
-        "SUPER_SHIFT, 4, movetoworkspace, 4"      
+        "SUPER_SHIFT, 4, movetoworkspace, 4"
         "SUPER_SHIFT, 5, movetoworkspace, 5"
         "SUPER_SHIFT, 6, movetoworkspace, 6"
         "SUPER_SHIFT, 7, movetoworkspace, 7"
         "SUPER_SHIFT, 8, movetoworkspace, 8"
-        "SUPER_SHIFT, 9, movetoworkspace, 9"        
+        "SUPER_SHIFT, 9, movetoworkspace, 9"
         "SUPER_SHIFT, K, exec, toggle-keyboard-backlight"
         "SUPER_SHIFT, R, exec, pkill -SIGINT wf-recorder"
         "SUPER, B, exec, toggle-bt-headphones"
@@ -56,10 +57,10 @@
         kb_layout = "us";
         follow_mouse = 1;
         touchpad = {
-            natural_scroll = false;
-            disable_while_typing = false;
-            tap-to-click = true;
-           };
+          natural_scroll = false;
+          disable_while_typing = false;
+          tap-to-click = true;
+        };
       };
       general = {
         "gaps_in" = 5;

@@ -1,3 +1,7 @@
+############################################################
+##########          START modules/system/waybar-scripts.nix          ##########
+############################################################
+
 # /etc/nixos/modules/system/waybar-scripts.nix
 { config, pkgs, ... }:
 
@@ -5,6 +9,7 @@
   # This module creates a custom script for Waybar that depends on system-level configuration.
   # By adding the script to environment.systemPackages, it becomes available in the PATH for all users.
   environment.systemPackages = [
+    # Script 1: Battery Status (Existing)
     (pkgs.writeShellScriptBin "waybar-battery-combined-status" ''
             #!${pkgs.stdenv.shell}
       
@@ -57,6 +62,34 @@
               fi
             fi
             printf '{"text": "%s %s%%%s", "tooltip": "%s"}' "$ICON" "$BATTERY_CAPACITY" "$LOCK_ICON" "$TOOLTIP"
+    '')
+
+    # Script 2: Custom Wifi Status (New)
+    # This bypasses Waybar's internal network module which often gets stuck 
+    # displaying the old SSID even after roaming, while the tooltip updates.
+    (pkgs.writeShellScriptBin "waybar-wifi-status" ''
+      #!${pkgs.bash}/bin/bash
+      set -euo pipefail
+
+      # Detect interface (usually wlan0 on Asahi)
+      INTERFACE=$(ip link show | grep wlan | awk -F: '{print $2}' | tr -d ' ' | head -n 1)
+      INTERFACE=''${INTERFACE:-wlan0}
+
+      # Use iwctl to get the absolute truth from iwd
+      STATUS=$(${pkgs.iwd}/bin/iwctl station "$INTERFACE" show)
+      
+      # Check state
+      STATE=$(echo "$STATUS" | grep "State" | awk '{print $2}')
+
+      if [ "$STATE" = "connected" ]; then
+        # Extract SSID, removing labels and whitespace
+        SSID=$(echo "$STATUS" | grep "Connected network" | sed 's/.*Connected network\s*//')
+        
+        # Output JSON
+        echo "{\"text\": \" $SSID\", \"tooltip\": \"Interface: $INTERFACE\nSSID: $SSID\nState: Connected\", \"class\": \"connected\"}"
+      else
+        echo "{\"text\": \" Disconnected\", \"tooltip\": \"Interface: $INTERFACE\nState: Disconnected\", \"class\": \"disconnected\"}"
+      fi
     '')
   ];
 }
