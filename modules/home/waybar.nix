@@ -5,9 +5,66 @@
 # /etc/nixos/modules/home/waybar.nix
 { pkgs, ... }:
 
+let
+  # Define the script directly here to ensure Waybar finds the exact store path.
+  wifiStatusScript = pkgs.writeShellScriptBin "waybar-wifi-status" ''
+    #!${pkgs.bash}/bin/bash
+    set -euo pipefail
+
+    # 1. SET PATH: Ensure all tools are available
+    export PATH="${pkgs.lib.makeBinPath [ 
+      pkgs.coreutils 
+      pkgs.gnugrep 
+      pkgs.gnused 
+      pkgs.gawk 
+      pkgs.iproute2 
+      pkgs.iwd 
+    ]}:$PATH"
+
+    # 2. LOGGING: Debug to /tmp/waybar-wifi.log
+    # View with: tail -f /tmp/waybar-wifi.log
+    LOG_FILE="/tmp/waybar-wifi.log"
+    # exec 2>> "$LOG_FILE" # Error logging
+    
+    # Uncomment the next line to see EVERY run in the log (spammy but useful for debugging)
+    # echo "$(date): Running..." >> "$LOG_FILE"
+
+    # --- Start Script ---
+
+    # Detect interface (usually wlan0 on Asahi)
+    INTERFACE=$(ip link show | grep -oP 'wlan\d+' | sort | head -n 1)
+    
+    if [ -z "$INTERFACE" ]; then
+        echo "{\"text\": \" No Interface\", \"tooltip\": \"No wireless interface found\", \"class\": \"disconnected\"}"
+        exit 0
+    fi
+
+    # Get status from iwd
+    # We use || true to prevent the script from crashing if iwctl fails temporarily
+    STATUS=$(iwctl station "$INTERFACE" show || echo "State disconnected")
+    
+    # Extract State
+    STATE=$(echo "$STATUS" | grep "State" | awk '{$1=""; print $0}' | xargs)
+
+    if [[ "$STATE" == "connected" ]]; then
+      # Extract SSID
+      SSID=$(echo "$STATUS" | grep "Connected network" | sed 's/.*Connected network\s*//' | xargs)
+      
+      if [ -z "$SSID" ]; then SSID="Hidden"; fi
+
+      echo "{\"text\": \" $SSID\", \"tooltip\": \"Interface: $INTERFACE\nSSID: $SSID\nState: Connected\", \"class\": \"connected\"}"
+    
+    elif [[ "$STATE" == "connecting" || "$STATE" == "authenticating" || "$STATE" == "associating" ]]; then
+      echo "{\"text\": \" Connecting...\", \"tooltip\": \"Interface: $INTERFACE\nState: $STATE\", \"class\": \"scanning\"}"
+      
+    else
+      echo "{\"text\": \" Disconnected\", \"tooltip\": \"Interface: $INTERFACE\nState: $STATE\", \"class\": \"disconnected\"}"
+    fi
+  '';
+in
 {
   # -------------------------------------------------------------------
-  # 📊 WAYBAR SYSTEMD USER SERVICE (Robust Method)
+  # 📊 WAYBAR SYSTEMD USER SERVICE
   # -------------------------------------------------------------------
   systemd.user.services.waybar = {
     Unit = {
@@ -83,7 +140,8 @@
       #backlight,
       #custom-battery-limit,
       #custom-logout,
-      #custom-tailscale {
+      #custom-tailscale,
+      #custom-wifi {
           padding: 0 10px;
           margin: 5px 3px;
           color: #cdd6f4;
@@ -93,7 +151,15 @@
       #memory { color: #a6e3a1; }
       #cpu { color: #fab387; }
       #backlight { color: #f9e2af; }
+      
+      /* Network Speed (Center) */
       #network { color: #b4befe; }
+
+      /* Custom Wifi (Right) */
+      #custom-wifi { color: #b4befe; }
+      #custom-wifi.disconnected { color: #f38ba8; } /* Red */
+      #custom-wifi.scanning { color: #fab387; }     /* Orange */
+      
       #battery { color: #a6e3a1; }
       #battery.charging { color: #a6e3a1; }
       #battery.warning:not(.charging) { color: #fab387; }
@@ -132,7 +198,7 @@
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" "network#speed" ];
-        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "network" "custom/battery" "clock" "custom/logout" ];
+        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -151,16 +217,12 @@
           format-disconnected = "";
           tooltip = false;
         };
-        network = {
-          # Fixed: Force interval to 1s and explicitly target wireless interfaces.
-          # This prevents Waybar from iterating over all interfaces (loopback, docker, etc)
-          # which can cause delays in updating the correct wifi status.
-          interface = "wlan*";
+        # HERE is the critical fix: Using the interpolated path to the script
+        "custom/wifi" = {
+          exec = "${wifiStatusScript}/bin/waybar-wifi-status";
+          return-type = "json";
           interval = 1;
-          format-wifi = " {essid}";
-          format-ethernet = " {ipaddr}";
-          format-disconnected = " Disconnected";
-          tooltip-format = "{ifname} via {gwaddr}";
+          format = "{}";
           on-click = "iwgtk";
         };
         pulseaudio = {
@@ -180,7 +242,7 @@
         };
         "custom/battery" = {
           format = "{}";
-          exec = "waybar-battery-combined-status";
+          exec = "/run/current-system/sw/bin/waybar-battery-combined-status";
           return-type = "json";
           interval = 5;
         };
@@ -188,7 +250,7 @@
           "format" = "{}";
           "return-type" = "json";
           "interval" = 10;
-          "exec" = "waybar-tailscale-status";
+          "exec" = "/run/current-system/sw/bin/waybar-tailscale-status";
           "on-click" = "tailscale-exit-node-selector";
         };
         "custom/logout" = {

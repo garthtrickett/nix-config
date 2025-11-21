@@ -1,3 +1,7 @@
+############################################################
+##########          START home-garth.nix          ##########
+############################################################
+
 # /etc/nixos/home-garth.nix
 { config, pkgs, inputs, ... }:
 
@@ -7,16 +11,12 @@
     ./modules/home/theme.nix
     ./modules/home/hyprland.nix
     ./modules/home/waybar.nix
-    ./modules/home/zellij.nix # CORRECTED: Use the dedicated zellij module
+    ./modules/home/zellij.nix
     ./modules/home/helix.nix
   ];
   # -------------------------------------------------------------------
   # 🔑 SECRETS MANAGEMENT WITH SOPS
   # -------------------------------------------------------------------
-  # This block is required so that Home Manager knows how to
-  # decrypt its own secrets.
-  # It does not inherit this from the
-  # system configuration.
   sops = {
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
     defaultSopsFile = ./secrets.yaml;
@@ -31,8 +31,6 @@
     EDITOR = "hx";
     VISUAL = "hx";
     MOZ_ENABLE_WAYLAND = "1";
-
-
   };
 
   # -------------------------------------------------------------------
@@ -42,7 +40,7 @@
   services.disable-touchpad-while-typing.enable = true;
 
   # -------------------------------------------------------------------
-  # 🌇 HYPRSUNSET SERVICE (Using the modern 'settings' option)
+  # 🌇 HYPRSUNSET SERVICE
   # -------------------------------------------------------------------
   services.hyprsunset = {
     enable = true;
@@ -61,6 +59,30 @@
         ];
       };
   };
+
+  # -------------------------------------------------------------------
+  # 🚀 GIT CONFIGURATION (Trunk-Based)
+  # -------------------------------------------------------------------
+  # Fixed structure based on evaluation warnings
+  programs.git = {
+    enable = true;
+    settings = {
+      user = {
+        name = "Garth Trickett";
+        email = "garthtrickett@gmail.com";
+      };
+      pull = {
+        rebase = true;
+      };
+      rebase = {
+        autoStash = true;
+      };
+      init = {
+        defaultBranch = "main";
+      };
+    };
+  };
+
   # -------------------------------------------------------------------
   # 📝 ZSH SHELL
   # -------------------------------------------------------------------
@@ -68,13 +90,15 @@
     enable = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
+
+    # Switched back to initContent as per evaluation warning
     initContent = ''
-      # Load Gemini API Key from sops
-      if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ];
-      then
+      # --- API KEYS ---
+      if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
         export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
       fi
 
+      # --- HELPER FUNCTIONS ---
       rebuild() {
         (
           cd /etc/nixos &&
@@ -82,29 +106,54 @@
           sudo nixos-rebuild switch --flake .#nixos "$@" &&
           echo "==> Returning to original directory"
         )
- 
+      }
+
+      # --- GIT ALIASES ---
+      alias gsync="git fetch origin && git rebase origin/main"
+      alias gcom="git add . && git commit -m"
+      alias gam="git add . && git commit --amend --no-edit"
+      alias gmain="git checkout main && git pull origin main"
+      
+      # CLEAN: Prune deleted remote branches and force-delete local branches marked [gone].
+      alias gclean="git fetch -p && git branch -vv | grep ': gone]' | awk '{print \$1}' | xargs git branch -D 2>/dev/null"
+
+      # NUKE: Force delete ALL local branches except main (Use with caution!)
+      alias gnuke="git branch | grep -v 'main' | xargs git branch -D 2>/dev/null"
+
+      # --- GIT WORKFLOW FUNCTIONS ---
+      
+      # START: Create a new branch from your CURRENT location.
+      function gstart() {
+        if [ -z "$1" ]; then
+          echo "Error: Please provide a branch name."
+          echo "Usage: gstart <branch-name>"
+          return 1
+        fi
+        git checkout -b "$1"
+      }
+
+      # PR: Push current branch and open GitHub PR page.
+      function gpr() {
+        # Force push safely (allows overwriting your own history, but not others)
+        git push --force-with-lease -u origin HEAD
+        
+        # Create PR (suppress error if PR already exists)
+        gh pr create --web || true
       }
 
       # --- ZELLIJ AUTO-RENAMING LOGIC ---
-      # Only execute if we are inside a Zellij session
       if [[ -n "$ZELLIJ" ]]; then
         autoload -Uz add-zsh-hook
 
-        # Function to run before a command is executed
         function zellij_tab_name_update_pre() {
           local cmd_line=$1
-          local cmd_name=''${cmd_line%% *} # Extract the first word (command)
-
+          local cmd_name=''${cmd_line%% *}
           if [[ -n "$cmd_name" && "$cmd_name" != "z" ]]; then
-            # Use nohup and &! to run in background without hanging the shell
             nohup zellij action rename-tab "$cmd_name" >/dev/null 2>&1 &!
           fi
         }
 
-        # Function to run before the prompt is displayed (idle/post-exec)
         function zellij_tab_name_update_post() {
-          # Rename tab to current directory (equivalent to fish's prompt_pwd)
-          # %1~ expands to current directory, or ~ if at home
           local current_dir=$(print -P "%1~") 
           nohup zellij action rename-tab "$current_dir" >/dev/null 2>&1 &!
         }
@@ -114,6 +163,7 @@
       fi
     '';
   };
+
   # -------------------------------------------------------------------
   #  Git & Jujutsu Configuration
   # -------------------------------------------------------------------
@@ -125,7 +175,6 @@
         email = "garthtrickett@gmail.com";
       };
       aliases = {
-        # CORRECTED: Use the modern `util exec` syntax for shell commands.
         sync = [ "util" "exec" "--" "bash" "-c" "jj git fetch && jj rebase -r @ -d main@origin" ];
         start = [ "util" "exec" "--" "bash" "-c" "jj new main@origin" ];
         sp = [ "util" "exec" "--" "bash" "-c" "jj git fetch && jj rebase -r @ -d main@origin && jj git push --change=@" ];
@@ -135,49 +184,37 @@
       };
     };
   };
+
   # -------------------------------------------------------------------
   # 📦 USER PACKAGES
   # -------------------------------------------------------------------
-
   programs.starship = {
     enable = true;
-    # Optional: Enable integration for your specific shell (often not needed if you enable the shell program in Home Manager too)
     enableZshIntegration = true;
-    # enableBashIntegration = true; 
-
-    # 2. Configure Starship settings (optional, but recommended)
     settings = {
-      # Replaces the content of your traditional ~/.config/starship.toml
       add_newline = false;
-      # Set to false to disable the blank line above the prompt
-
       character = {
         success_symbol = "[➜](bold green)";
         error_symbol = "[✗](bold red)";
       };
-
-      # Define the prompt format
       format = "$all$line_break$character";
     };
   };
-  # -------------------------------------------------------------------
-  # 📦 USER PACKAGES
-  # -------------------------------------------------------------------
+
   home.packages = with pkgs;
     [
       (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
       gh
-      jujutsu # The Git-compatible DVCS
-      caddy # The Caddy web server
-      mkcert # For creating locally-trusted development certificates
+      jujutsu
+      caddy
+      mkcert
       alacritty
       zellij
-      zjstatus # ADDED: Ensure zjstatus is in the environment
+      zjstatus
       fuzzel
       hyprshot
       nemo
       swaylock
-
       zathura
       swayidle
       brightnessctl
@@ -196,18 +233,18 @@
       iwgtk
       unzip
       vlc
-
       sops
       age
       wf-recorder
       ffmpeg
-      file-roller # The archive manager
-      nemo-fileroller # Nemo integration for file-roller
+      file-roller
+      nemo-fileroller
       pulseaudio
       toggle-bt-headphones
       bun
       gemini-cli
     ];
+
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION
   # -------------------------------------------------------------------
