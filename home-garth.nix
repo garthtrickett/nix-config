@@ -1,9 +1,9 @@
 ############################################################
-##########          START home-garth.nix          ##########
+##########           START home-garth.nix            ##########
 ############################################################
 
 # /etc/nixos/home-garth.nix
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
   imports = [
@@ -22,8 +22,72 @@
     defaultSopsFile = ./secrets.yaml;
 
     # Define the user-specific secrets that Home Manager needs.
-    secrets.GEMINI_API_KEY = { };
+    secrets.GEMINI_API_KEY = {
+      path = "${config.home.homeDirectory}/.config/gemini/api-key";
+      mode = "0400";
+    };
+
+    # 🔑 SSH Key Deployment (Raw Output)
+    # We output the raw secret here. The 'format-ssh-key' service below 
+    # will read this, format it (if needed), and write it to id_ed25519.
+    secrets.ssh_private_key = {
+      path = "${config.home.homeDirectory}/.ssh/id_ed25519_raw";
+      mode = "0600";
+    };
   };
+
+  # -------------------------------------------------------------------
+  # 🔧 FIX SSH KEY FORMATTING (RUNTIME SERVICE)
+  # -------------------------------------------------------------------
+  # This service fixes the issue where sops/yaml flattens the SSH key.
+  # It runs at runtime (systemd), avoiding the 'pure evaluation' build error.
+  systemd.user.services.format-ssh-key = {
+    Unit = {
+      Description = "Format SSH Key from Sops Raw Output";
+      # Run immediately after sops-nix has decrypted the secrets
+      After = [ "sops-nix.service" ];
+      Wants = [ "sops-nix.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      # Script: Checks if raw key is single-line. If so, formats it. If not, copies it.
+      ExecStart =
+        let
+          script = pkgs.writeShellScript "format-ssh-key-script" ''
+            RAW_KEY="${config.home.homeDirectory}/.ssh/id_ed25519_raw"
+            FINAL_KEY="${config.home.homeDirectory}/.ssh/id_ed25519"
+
+            if [ ! -f "$RAW_KEY" ]; then
+              echo "No raw key found at $RAW_KEY. Sops might not be ready."
+              exit 0
+            fi
+
+            # Check line count. If < 2, it implies a flattened single-line key.
+            LINE_COUNT=$(${pkgs.coreutils}/bin/wc -l < "$RAW_KEY")
+
+            if [ "$LINE_COUNT" -lt 2 ]; then
+               echo "Detected single-line SSH key. Formatting..."
+               cat "$RAW_KEY" | \
+               ${pkgs.gnused}/bin/sed 's/-----END OPENSSH PRIVATE KEY-----/\n&/' | \
+               ${pkgs.gnused}/bin/sed 's/-----BEGIN OPENSSH PRIVATE KEY-----/&\n/' | \
+               ${pkgs.gfold}/bin/fold -w 64 > "$FINAL_KEY"
+            else
+               echo "SSH key appears valid (multi-line). Copying..."
+               cp "$RAW_KEY" "$FINAL_KEY"
+            fi
+
+            # Ensure correct permissions (Read/Write for user only)
+            chmod 600 "$FINAL_KEY"
+            echo "SSH key successfully deployed to $FINAL_KEY"
+          '';
+        in
+        "${script}";
+    };
+    Install = {
+      WantedBy = [ "default.target" ];
+    };
+  };
+
   # -------------------------------------------------------------------
   # ⚙️ GLOBAL ENVIRONMENT & SESSION VARIABLES
   # -------------------------------------------------------------------
@@ -38,6 +102,26 @@
   # -------------------------------------------------------------------
   services.polkit-gnome.enable = true;
   services.disable-touchpad-while-typing.enable = true;
+
+  # -------------------------------------------------------------------
+  # 🛡️ SSH CONFIGURATION
+  # -------------------------------------------------------------------
+  programs.ssh = {
+    enable = true;
+
+    matchBlocks = {
+      "*" = {
+        setEnv = { TERM = "xterm-256color"; };
+        addKeysToAgent = "yes";
+      };
+      "vultr" = {
+        hostname = "139.84.201.119";
+        user = "root";
+        # Point SSH to the FINAL formatted key, not the raw one
+        identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      };
+    };
+  };
 
   # -------------------------------------------------------------------
   # 🌇 HYPRSUNSET SERVICE
@@ -63,7 +147,6 @@
   # -------------------------------------------------------------------
   # 🚀 GIT CONFIGURATION (Trunk-Based)
   # -------------------------------------------------------------------
-  # Fixed structure based on evaluation warnings
   programs.git = {
     enable = true;
     settings = {
@@ -91,9 +174,9 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
-    # Switched back to initContent as per evaluation warning
     initContent = ''
       # --- API KEYS ---
+      # The path is guaranteed to exist and is linked by Home Manager
       if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
         export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
       fi
@@ -113,7 +196,7 @@
       alias gcom="git add . && git commit -m"
       alias gam="git add . && git commit --amend --no-edit"
       alias gmain="git checkout main && git pull origin main"
-      
+
       # CLEAN: Prune deleted remote branches and force-delete local branches marked [gone].
       alias gclean="git fetch -p && git branch -vv | grep ': gone]' | awk '{print \$1}' | xargs git branch -D 2>/dev/null"
 
@@ -121,7 +204,7 @@
       alias gnuke="git branch | grep -v 'main' | xargs git branch -D 2>/dev/null"
 
       # --- GIT WORKFLOW FUNCTIONS ---
-      
+
       # START: Create a new branch from your CURRENT location.
       function gstart() {
         if [ -z "$1" ]; then
@@ -136,7 +219,7 @@
       function gpr() {
         # Force push safely (allows overwriting your own history, but not others)
         git push --force-with-lease -u origin HEAD
-        
+
         # Create PR (suppress error if PR already exists)
         gh pr create --web || true
       }
@@ -154,7 +237,7 @@
         }
 
         function zellij_tab_name_update_post() {
-          local current_dir=$(print -P "%1~") 
+          local current_dir=$(print -P "%1~")
           nohup zellij action rename-tab "$current_dir" >/dev/null 2>&1 &!
         }
 
@@ -201,49 +284,49 @@
     };
   };
 
-  home.packages = with pkgs;
-    [
-      (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
-      gh
-      jujutsu
-      caddy
-      mkcert
-      alacritty
-      zellij
-      zjstatus
-      fuzzel
-      hyprshot
-      nemo
-      swaylock
-      zathura
-      swayidle
-      brightnessctl
-      wl-clipboard
-      xdg-user-dirs
-      ydotool
-      procps
-      nerd-fonts.fira-code
-      hyprsunset
-      libreoffice
-      libnotify
-      gnugrep
-      gnused
-      dunst
-      libinput
-      iwgtk
-      unzip
-      vlc
-      sops
-      age
-      wf-recorder
-      ffmpeg
-      file-roller
-      nemo-fileroller
-      pulseaudio
-      toggle-bt-headphones
-      bun
-      gemini-cli
-    ];
+  home.packages = [
+    (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)
+    pkgs.gh
+    pkgs.jujutsu
+    pkgs.caddy
+    pkgs.mkcert
+    pkgs.alacritty
+    pkgs.zellij
+    pkgs.zjstatus
+    pkgs.fuzzel
+    pkgs.hyprshot
+    pkgs.nemo
+    pkgs.swaylock
+    pkgs.zathura
+    pkgs.swayidle
+    pkgs.brightnessctl
+    pkgs.wl-clipboard
+    pkgs.xdg-user-dirs
+    pkgs.ydotool
+    pkgs.procps
+    pkgs.nerd-fonts.fira-code
+    pkgs.hyprsunset
+    pkgs.libreoffice
+    pkgs.libnotify
+    pkgs.gnugrep
+    pkgs.gnused
+    pkgs.gfold
+    pkgs.dunst
+    pkgs.libinput
+    pkgs.iwgtk
+    pkgs.unzip
+    pkgs.vlc
+    pkgs.sops
+    pkgs.age
+    pkgs.wf-recorder
+    pkgs.ffmpeg
+    pkgs.file-roller
+    pkgs.nemo-fileroller
+    pkgs.pulseaudio
+    pkgs.toggle-bt-headphones
+    pkgs.bun
+    pkgs.gemini-cli
+  ];
 
   # -------------------------------------------------------------------
   # ⚙️ AUTOMATED MKCERT & CADDY CONFIGURATION

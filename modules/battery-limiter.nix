@@ -21,16 +21,22 @@
     # If 'services.battery-limiter.enable = true', then create this systemd service:
     systemd.services.set-battery-charge-threshold = {
       description = "Set the battery charge threshold to ${toString config.services.battery-limiter.threshold}%";
-      
+
       wantedBy = [ "multi-user.target" ];
-      
+
       serviceConfig = {
         Type = "oneshot";
-        
+
         # This command uses the 'threshold' option we defined above.
+        # Added a check to ensure the path exists to prevent systemd failure logs on boot.
         ExecStart = "${pkgs.writeShellScriptBin "set-battery-threshold" ''
           #!/bin/sh
-          echo ${toString config.services.battery-limiter.threshold} > /sys/class/power_supply/macsmc-battery/charge_control_end_threshold
+          BAT_PATH="/sys/class/power_supply/macsmc-battery/charge_control_end_threshold"
+          if [ -f "$BAT_PATH" ]; then
+            echo ${toString config.services.battery-limiter.threshold} > "$BAT_PATH"
+          else
+            echo "Battery threshold path not found: $BAT_PATH"
+          fi
         ''}/bin/set-battery-threshold";
       };
     };

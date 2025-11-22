@@ -1,7 +1,3 @@
-############################################################
-##########          START configuration.nix          ##########
-############################################################
-
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -181,6 +177,37 @@
   sops.secrets.tailscale_auth_key = {
     owner = "tailscaled";
     group = "tailscaled";
+  };
+
+
+  # -------------------------------------------------------------------
+  # ⚙️ POWER MANAGEMENT
+  # -------------------------------------------------------------------
+
+  # Note: powertop auto-tune can sometimes be too aggressive with 
+  # USB autosuspend on Asahi. If trackpad lags, disable this.
+  powerManagement.powertop.enable = true;
+
+  services = {
+    # Disable GNOME power profiles to avoid conflicts with TLP
+    power-profiles-daemon.enable = false;
+
+    tlp = {
+      enable = true;
+      settings = {
+        # Removed STOP_CHARGE_THRESH_BAT0 to avoid conflict with 
+        # the custom services.battery-limiter module.
+
+        # Apple Silicon (ARM) handles scaling differently than Intel.
+        # 'schedutil' is often preferred for responsiveness on M-series chips.
+        CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
+        CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
+
+        # Keeping these as defaults, though effect varies by kernel support
+        CPU_BOOST_ON_AC = 1;
+        CPU_BOOST_ON_BAT = 0;
+      };
+    };
   };
 
   # -------------------------------------------------------------------
