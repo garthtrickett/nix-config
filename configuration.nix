@@ -1,3 +1,7 @@
+############################################################
+##########          START configuration.nix          ##########
+############################################################
+
 # /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
@@ -73,9 +77,14 @@
   services.printing.enable = true;
 
   # -------------------------------------------------------------------
-  # 🐳 VIRTUALISATION (DOCKER)
+  # 🐳 VIRTUALISATION (DOCKER) & EMULATION
   # -------------------------------------------------------------------
   virtualisation.docker.enable = true;
+  # Enable binfmt emulation for cross-compilation (ARM64 -> x86_64)
+  boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
+  # This forces the 'F' flag (Fix Binary), loading the interpreter into memory.
+  # Essential for running x86 containers on ARM.
+  boot.binfmt.preferStaticEmulators = true;
 
   # -------------------------------------------------------------------
   # 🛡️ SUDO RULES

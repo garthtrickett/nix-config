@@ -28,11 +28,31 @@
     };
 
     # 🔑 SSH Key Deployment (Raw Output)
-    # We output the raw secret here. The 'format-ssh-key' service below 
-    # will read this, format it (if needed), and write it to id_ed25519.
-    secrets.ssh_private_key = {
-      path = "${config.home.homeDirectory}/.ssh/id_ed25519_raw";
-      mode = "0600";
+
+    # ☁️ AWS Credentials
+    # We define these so sops decrypts them, but we don't assign a specific path
+    # because we consume them in the templates below.
+    secrets.aws_access_key_id = { };
+    secrets.aws_secret_access_key = { };
+
+    # Generate ~/.aws/credentials
+    templates."aws/credentials" = {
+      path = "${config.home.homeDirectory}/.aws/credentials";
+      content = ''
+        [default]
+        aws_access_key_id = ${config.sops.placeholder.aws_access_key_id}
+        aws_secret_access_key = ${config.sops.placeholder.aws_secret_access_key}
+      '';
+    };
+
+    # Generate ~/.aws/config
+    templates."aws/config" = {
+      path = "${config.home.homeDirectory}/.aws/config";
+      content = ''
+        [default]
+        region = ap-southeast-2
+        output = json
+      '';
     };
   };
 
@@ -326,6 +346,7 @@
     pkgs.toggle-bt-headphones
     pkgs.bun
     pkgs.gemini-cli
+    pkgs.awscli2 # Added for AWS CDK interaction
   ];
 
   # -------------------------------------------------------------------

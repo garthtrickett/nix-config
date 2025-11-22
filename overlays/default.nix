@@ -1,6 +1,33 @@
 # /etc/nixos/overlays/default.nix
-self: super: {
+self: super:
+let
+  # Helper to strictly disable broken crypto dependencies for static builds
+  fixQemu = pkg: pkg.overrideAttrs (old: {
+    # 1. Add configure flags to tell QEMU not to use these features
+    configureFlags = (old.configureFlags or [ ]) ++ [
+      "--disable-nettle"
+      "--disable-gcrypt"
+      "--disable-gnutls"
+      "--disable-crypto-afalg"
+    ];
 
+    # 2. Filter the buildInputs to physically remove the libraries.
+    #    This prevents the "unexpected argument" error because we aren't changing the function inputs,
+    #    we are modifying the derivation result.
+    #    CORRECTION: Used 'hasInfix' instead of 'isInfix'
+    buildInputs = builtins.filter
+      (x:
+        let
+          name = x.pname or x.name or "";
+        in
+          !(super.lib.strings.hasInfix "nettle" name ||
+            super.lib.strings.hasInfix "gcrypt" name ||
+            super.lib.strings.hasInfix "gnutls" name)
+      )
+      (old.buildInputs or [ ]);
+  });
+in
+{
   # Overlay 1: The battery limit toggle script
   toggle-battery-limit = super.writeShellScriptBin "toggle-battery-limit" ''
     #!${super.stdenv.shell}
@@ -46,14 +73,19 @@ self: super: {
 
   # Overlay 2: The asahi-audio override
   asahi-audio = super.asahi-audio.override {
-     triforce-lv2 = super.triforce-lv2;
+    triforce-lv2 = super.triforce-lv2;
   };
 
+  # Overlay 3: Fix qemu-user-static build on aarch64
+  # Apply the robust fix to both base qemu and the static user variant
+  qemu = fixQemu super.qemu;
+  qemu-user-static = fixQemu super.qemu-user-static;
+
   # -------------------------------------------------------------------
-  # ⬇️ REWRITTEN TAILSCALE SCRIPTS WITH LOGGING ⬇️
+  # ⬇️ TAILSCALE SCRIPTS ⬇️
   # -------------------------------------------------------------------
 
-  # Overlay 3: The exit node STATUS script for Waybar (with logging)
+  # Overlay 4: The exit node STATUS script for Waybar (with logging)
   waybar-tailscale-status = super.writeShellScriptBin "waybar-tailscale-status" ''
     #!${super.bash}/bin/bash
     set -euo pipefail
@@ -61,8 +93,6 @@ self: super: {
     LOG_FILE="$HOME/.local/state/tailscale-waybar.log"
     mkdir -p "$(dirname "$LOG_FILE")"
     exec 2>> "$LOG_FILE"
-    
-    echo "--- STATUS CHECK $(date) ---" >> "$LOG_FILE"
     
     PATH=${super.jq}/bin:$PATH
     STATUS_JSON=$(${super.tailscale}/bin/tailscale status --json 2>/dev/null || echo "{}")
@@ -77,8 +107,6 @@ self: super: {
       end
     ')
     
-    echo "Found Exit Node Peer JSON: [$EXIT_NODE_PEER_JSON]" >> "$LOG_FILE"
-
     if [ -z "$EXIT_NODE_PEER_JSON" ] || [ "$EXIT_NODE_PEER_JSON" == "null" ]; then
       printf '{"text": "VPN 󰖪", "tooltip": "Tailscale Exit Node: Inactive", "class": "inactive"}'
     else
@@ -88,7 +116,7 @@ self: super: {
     fi
   '';
 
-  # Overlay 4: The exit node SELECTOR script (with logging)
+  # Overlay 5: The exit node SELECTOR script (with logging)
   tailscale-exit-node-selector = super.writeShellScriptBin "tailscale-exit-node-selector" ''
     #!${super.bash}/bin/bash
     set -euo pipefail
@@ -96,20 +124,17 @@ self: super: {
     LOG_FILE="$HOME/.local/state/tailscale-waybar.log"
     mkdir -p "$(dirname "$LOG_FILE")"
     
-    # Wrap the main logic to redirect all its output (stdout and stderr) to the log file
     {
       echo "--- SELECTOR SCRIPT RUN $(date) ---"
-      
       PATH=${super.jq}/bin:$PATH
 
-      # The jq query now outputs the full DNS Name, a tab character, and then the user-friendly display string.
+      # The jq query outputs the full DNS Name, a tab character, and then the user-friendly display string.
       EXIT_NODES=$(${super.tailscale}/bin/tailscale status --json | \
         jq -r '.Peer | to_entries[] | select(.value.ExitNodeOption == true) | "\(.value.DNSName)\t\(.value.Location.City), \(.value.Location.Country) (\(.value.HostName))"')
       
       echo "Generated Node List:" >> "$LOG_FILE"
       echo "$EXIT_NODES" >> "$LOG_FILE"
 
-      # Fuzzel will display the full line, but the command below will correctly parse it.
       CHOICE=$( (echo "󰖪 Off"; echo "$EXIT_NODES") | ${super.fuzzel}/bin/fuzzel --dmenu --prompt="Select Exit Node > ")
       echo "User choice: [$CHOICE]"
 
@@ -131,26 +156,15 @@ self: super: {
     } &>> "$LOG_FILE"
   '';
 
-# Overlay 5: The Bluetooth headphone toggle script (Final, Linter-Approved)
+  # Overlay 6: The Bluetooth headphone toggle script
   toggle-bt-headphones = super.writeShellApplication {
     name = "toggle-bt-headphones";
-
-    # We can now remove 'gnused' as it's no longer needed.
-    runtimeInputs = with super; [
-      bash
-      bluez
-      pipewire
-      libnotify
-      gnugrep
-      coreutils
-    ];
-
+    runtimeInputs = with super; [ bash bluez pipewire libnotify gnugrep coreutils ];
     text = ''
       set -euo pipefail
 
       # --- CONFIGURATION ---
       BT_MAC="F4:9D:8A:30:F2:A8"
-      # CORRECTED: Use pure Bash string replacement. This is what shellcheck wanted.
       PW_SINK_NAME="''${BT_MAC//:/_}"
 
       # --- SCRIPT LOGIC ---
@@ -191,5 +205,4 @@ self: super: {
       fi
     '';
   };
-
 }
