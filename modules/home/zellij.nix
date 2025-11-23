@@ -1,3 +1,4 @@
+# /etc/nixos/modules/home/zellij.nix
 { config, pkgs, ... }:
 
 {
@@ -7,11 +8,23 @@
   programs.alacritty = {
     enable = true;
     settings = {
+      # Import the dynamic theme file (managed by toggle-theme script)
+      general.import = [ "~/.config/alacritty/theme.toml" ];
+
       selection.save_to_clipboard = true;
       window.opacity = 0.9;
+
       font = {
         normal.family = "FiraCode Nerd Font";
         size = 12;
+      };
+
+      # Explicitly define cursor style to avoid legacy warnings/defaults
+      cursor = {
+        style = {
+          shape = "Block";
+          blinking = "On";
+        };
       };
     };
   };

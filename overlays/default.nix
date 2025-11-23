@@ -1,7 +1,6 @@
 # /etc/nixos/overlays/default.nix
 self: super:
 let
-  # Helper to strictly disable broken crypto dependencies for static builds
   fixQemu = pkg: pkg.overrideAttrs (old: {
     configureFlags = (old.configureFlags or [ ]) ++ [
       "--disable-nettle"
@@ -26,41 +25,64 @@ in
   # 🌓 THEME TOGGLER SCRIPT
   # -------------------------------------------------------------------
   toggle-theme = super.writeShellScriptBin "toggle-theme" ''
-        #!${super.stdenv.shell}
-        set -e
+    #!${super.stdenv.shell}
 
-        # --- PATHS ---
-        XDG_CONFIG_HOME="''${XDG_CONFIG_HOME:-$HOME/.config}"
-        STATE_FILE="$XDG_CONFIG_HOME/current_theme"
-    
-        # Waybar Files
-        WB_THEME_FILE="$XDG_CONFIG_HOME/waybar/theme.css"
-    
-        # Hyprland Files
-        HYPR_THEME_FILE="$XDG_CONFIG_HOME/hypr/theme.conf"
+    # --- LOGGING FOR DEBUGGING ---
+    LOG_FILE="/tmp/toggle-theme.log"
+    exec > >(tee -a "$LOG_FILE") 2>&1
+    echo "--- RUNNING THEME TOGGLE AT $(date) ---"
 
-        # Helix
-        HX_CONFIG="$XDG_CONFIG_HOME/helix/config.toml"
+    set -e
 
-        # Zellij
-        ZELLIJ_CONFIG="$XDG_CONFIG_HOME/zellij/config.kdl"
+    # --- FIX: GSETTINGS SCHEMAS ---
+    # The script needs to know where the GNOME schemas are to change GTK settings
+    export XDG_DATA_DIRS="${super.gsettings-desktop-schemas}/share/gsettings-schemas/${super.gsettings-desktop-schemas.name}:${super.gtk3}/share/gsettings-schemas/${super.gtk3.name}:$XDG_DATA_DIRS"
 
-        # --- LOGIC ---
-        if [ ! -f "$STATE_FILE" ]; then
-          echo "dark" > "$STATE_FILE"
-        fi
+    # --- PATHS ---
+    XDG_CONFIG_HOME="''${XDG_CONFIG_HOME:-$HOME/.config}"
+    STATE_FILE="$XDG_CONFIG_HOME/current_theme"
 
-        CURRENT_MODE=$(cat "$STATE_FILE")
+    # Config Files
+    WB_THEME_FILE="$XDG_CONFIG_HOME/waybar/theme.css"
+    HYPR_THEME_FILE="$XDG_CONFIG_HOME/hypr/theme.conf"
+    HX_CONFIG="$XDG_CONFIG_HOME/helix/config.toml"
+    ZELLIJ_CONFIG="$XDG_CONFIG_HOME/zellij/config.kdl"
+    ALACRITTY_THEME_FILE="$XDG_CONFIG_HOME/alacritty/theme.toml"
 
-        if [ "$CURRENT_MODE" = "dark" ]; then
-          NEW_MODE="light"
+    # --- HELPER: UPDATE ZELLIJ RUNTIME ---
+    update_zellij_runtime() {
+      local new_theme="$1"
+      if command -v zellij >/dev/null 2>&1; then
+          # Get list of sessions, strip ANSI colors, get first column (session name)
+          SESSIONS=$(${super.zellij}/bin/zellij list-sessions 2>/dev/null | ${super.gnused}/bin/sed 's/\x1b\[[0-9;]*m//g' | ${super.gawk}/bin/awk '{print $1}')
       
-          # 1. GTK (For Firefox/Zen/Nemo)
-          ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
-          ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Latte-Standard-Blue-Dark' || true
+          for session in $SESSIONS; do
+              if [ -n "$session" ]; then
+                   echo "Updating Zellij session: $session to $new_theme"
+                   ${super.zellij}/bin/zellij action --session "$session" options --theme "$new_theme" || true
+              fi
+          done
+      fi
+    }
 
-          # 2. Waybar Colors (Latte)
-          cat > "$WB_THEME_FILE" <<EOF
+    # --- LOGIC ---
+    if [ ! -f "$STATE_FILE" ]; then
+      echo "dark" > "$STATE_FILE"
+    fi
+
+    CURRENT_MODE=$(cat "$STATE_FILE")
+    echo "Current mode: $CURRENT_MODE"
+
+    if [ "$CURRENT_MODE" = "dark" ]; then
+      NEW_MODE="light"
+      echo "Switching to Light Mode..."
+
+      # 1. GTK
+      ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
+      ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Latte-Standard-Blue-Dark' || true
+
+      # 2. Waybar (Latte)
+    cat > "$WB_THEME_FILE" <<EOF
     @define-color base #eff1f5;
     @define-color mantle #e6e9ef;
     @define-color crust #dce0e8;
@@ -89,39 +111,88 @@ in
     @define-color rosewater #dc8a78;
     EOF
 
-          # 3. Hyprland Colors (Latte)
-          # Write config for persistence
-          echo 'general {
-              col.active_border = rgba(1e66f5ee) rgba(40a02bee) 45deg
-              col.inactive_border = rgba(bcc0ccaa)
-          }' > "$HYPR_THEME_FILE"
-          # Apply immediately
-          ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(1e66f5ee) rgba(40a02bee) 45deg"
-          ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(bcc0ccaa)"
+      # 3. Hyprland (Latte)
+      echo 'general {
+          col.active_border = rgba(1e66f5ee) rgba(40a02bee) 45deg
+          col.inactive_border = rgba(bcc0ccaa)
+      }' > "$HYPR_THEME_FILE"
+      ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(1e66f5ee) rgba(40a02bee) 45deg"
+      ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(bcc0ccaa)"
 
-          # 4. Helix (Latte)
-          if [ -w "$HX_CONFIG" ]; then
-            ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_latte"/' "$HX_CONFIG"
-            pkill -USR1 hx || true # Reload Helix config if running
-          fi
+      # 4. Helix (Latte)
+      if [ -w "$HX_CONFIG" ]; then
+        ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_latte"/' "$HX_CONFIG"
+        pkill -USR1 hx || true 
+      fi
 
-          # 5. Zellij (Latte)
-          if [ -w "$ZELLIJ_CONFIG" ]; then
-            ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-latte"/' "$ZELLIJ_CONFIG"
-          fi
-      
-          NOTIFY_ICON="weather-clear"
-          NOTIFY_MSG="Light Mode Activated"
+      # 5. Zellij (Latte)
+      if [ -w "$ZELLIJ_CONFIG" ]; then
+        ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-latte"/' "$ZELLIJ_CONFIG"
+        update_zellij_runtime "catppuccin-latte"
+      fi
 
-        else
-          NEW_MODE="dark"
+      # 6. Alacritty (Latte)
+    cat > "$ALACRITTY_THEME_FILE" <<EOF
+    [colors.primary]
+    background = "#eff1f5"
+    foreground = "#4c4f69"
+    dim_foreground = "#4c4f69"
+    bright_foreground = "#4c4f69"
+    [colors.cursor]
+    text = "#eff1f5"
+    cursor = "#dc8a78"
+    [colors.search]
+    matches = { foreground = "#eff1f5", background = "#8c8fa1" }
+    focused_match = { foreground = "#eff1f5", background = "#40a02b" }
+    footer_bar = { foreground = "#eff1f5", background = "#8c8fa1" }
+    [colors.hints]
+    start = { foreground = "#eff1f5", background = "#df8e1d" }
+    end = { foreground = "#eff1f5", background = "#8c8fa1" }
+    [colors.selection]
+    text = "#eff1f5"
+    background = "#dc8a78"
+    [colors.normal]
+    black = "#5c5f77"
+    red = "#d20f39"
+    green = "#40a02b"
+    yellow = "#df8e1d"
+    blue = "#1e66f5"
+    magenta = "#ea76cb"
+    cyan = "#179299"
+    white = "#acb0be"
+    [colors.bright]
+    black = "#6c6f85"
+    red = "#d20f39"
+    green = "#40a02b"
+    yellow = "#df8e1d"
+    blue = "#1e66f5"
+    magenta = "#ea76cb"
+    cyan = "#179299"
+    white = "#bcc0cc"
+    [colors.dim]
+    black = "#5c5f77"
+    red = "#d20f39"
+    green = "#40a02b"
+    yellow = "#df8e1d"
+    blue = "#1e66f5"
+    magenta = "#ea76cb"
+    cyan = "#179299"
+    white = "#acb0be"
+    EOF
+  
+      NOTIFY_ICON="weather-clear"
+      NOTIFY_MSG="Light Mode Activated"
 
-          # 1. GTK
-          ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-          ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Macchiato-Standard-Blue-Dark' || true
+    else
+      NEW_MODE="dark"
+      echo "Switching to Dark Mode..."
 
-          # 2. Waybar Colors (Macchiato)
-          cat > "$WB_THEME_FILE" <<EOF
+      # 1. GTK
+      ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+      ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Macchiato-Standard-Blue-Dark' || true
+
+      # 2. Waybar (Macchiato)
+    cat > "$WB_THEME_FILE" <<EOF
     @define-color base #24273a;
     @define-color mantle #1e2030;
     @define-color crust #181926;
@@ -150,37 +221,88 @@ in
     @define-color rosewater #f4dbd6;
     EOF
 
-          # 3. Hyprland Colors (Macchiato)
-          echo 'general {
-              col.active_border = rgba(8aadf4ee) rgba(a6da95ee) 45deg
-              col.inactive_border = rgba(5b6078aa)
-          }' > "$HYPR_THEME_FILE"
-          ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(8aadf4ee) rgba(a6da95ee) 45deg"
-          ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(5b6078aa)"
+      # 3. Hyprland (Macchiato)
+      echo 'general {
+          col.active_border = rgba(8aadf4ee) rgba(a6da95ee) 45deg
+          col.inactive_border = rgba(5b6078aa)
+      }' > "$HYPR_THEME_FILE"
+      ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(8aadf4ee) rgba(a6da95ee) 45deg"
+      ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(5b6078aa)"
 
-          # 4. Helix (Macchiato)
-          if [ -w "$HX_CONFIG" ]; then
-            ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_macchiato"/' "$HX_CONFIG"
-            pkill -USR1 hx || true
-          fi
+      # 4. Helix (Macchiato)
+      if [ -w "$HX_CONFIG" ]; then
+        ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_macchiato"/' "$HX_CONFIG"
+        pkill -USR1 hx || true
+      fi
 
-          # 5. Zellij (Macchiato)
-          if [ -w "$ZELLIJ_CONFIG" ]; then
-            ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-macchiato"/' "$ZELLIJ_CONFIG"
-          fi
+      # 5. Zellij (Macchiato)
+      if [ -w "$ZELLIJ_CONFIG" ]; then
+        ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-macchiato"/' "$ZELLIJ_CONFIG"
+        update_zellij_runtime "catppuccin-macchiato"
+      fi
 
-          NOTIFY_ICON="weather-clear-night"
-          NOTIFY_MSG="Dark Mode Activated"
-        fi
+      # 6. Alacritty (Macchiato)
+    cat > "$ALACRITTY_THEME_FILE" <<EOF
+    [colors.primary]
+    background = "#24273a"
+    foreground = "#cad3f5"
+    dim_foreground = "#7f849c"
+    bright_foreground = "#cad3f5"
+    [colors.cursor]
+    text = "#24273a"
+    cursor = "#f4dbd6"
+    [colors.search]
+    matches = { foreground = "#24273a", background = "#a5adcb" }
+    focused_match = { foreground = "#24273a", background = "#a6da95" }
+    footer_bar = { foreground = "#24273a", background = "#a5adcb" }
+    [colors.hints]
+    start = { foreground = "#24273a", background = "#eed49f" }
+    end = { foreground = "#24273a", background = "#a5adcb" }
+    [colors.selection]
+    text = "#24273a"
+    background = "#f4dbd6"
+    [colors.normal]
+    black = "#494d64"
+    red = "#ed8796"
+    green = "#a6da95"
+    yellow = "#eed49f"
+    blue = "#8aadf4"
+    magenta = "#f5bde6"
+    cyan = "#8bd5ca"
+    white = "#b8c0e0"
+    [colors.bright]
+    black = "#5b6078"
+    red = "#ed8796"
+    green = "#a6da95"
+    yellow = "#eed49f"
+    blue = "#8aadf4"
+    magenta = "#f5bde6"
+    cyan = "#8bd5ca"
+    white = "#a5adcb"
+    [colors.dim]
+    black = "#494d64"
+    red = "#ed8796"
+    green = "#a6da95"
+    yellow = "#eed49f"
+    blue = "#8aadf4"
+    magenta = "#f5bde6"
+    cyan = "#8bd5ca"
+    white = "#b8c0e0"
+    EOF
 
-        # SAVE STATE
-        echo "$NEW_MODE" > "$STATE_FILE"
+      NOTIFY_ICON="weather-clear-night"
+      NOTIFY_MSG="Dark Mode Activated"
+    fi
 
-        # RELOAD WAYBAR
-        pkill -SIGUSR2 waybar || true
+    # SAVE STATE
+    echo "$NEW_MODE" > "$STATE_FILE"
 
-        # NOTIFY
-        ${super.libnotify}/bin/notify-send -i "$NOTIFY_ICON" "Theme Toggle" "$NOTIFY_MSG"
+    # RELOAD WAYBAR
+    pkill -SIGUSR2 waybar || true
+
+    # NOTIFY
+    ${super.libnotify}/bin/notify-send -i "$NOTIFY_ICON" "Theme Toggle" "$NOTIFY_MSG"
+    echo "Done."
   '';
 
   # Overlay 1: The battery limit toggle script
