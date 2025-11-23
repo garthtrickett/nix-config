@@ -144,7 +144,6 @@ in
     [colors.search]
     matches = { foreground = "#eff1f5", background = "#8c8fa1" }
     focused_match = { foreground = "#eff1f5", background = "#40a02b" }
-    footer_bar = { foreground = "#eff1f5", background = "#8c8fa1" }
     [colors.hints]
     start = { foreground = "#eff1f5", background = "#df8e1d" }
     end = { foreground = "#eff1f5", background = "#8c8fa1" }
@@ -254,7 +253,9 @@ in
     [colors.search]
     matches = { foreground = "#24273a", background = "#a5adcb" }
     focused_match = { foreground = "#24273a", background = "#a6da95" }
-    footer_bar = { foreground = "#24273a", background = "#a5adcb" }
+    [colors.footer_bar]
+    foreground = "#24273a"
+    background = "#a5adcb"
     [colors.hints]
     start = { foreground = "#24273a", background = "#eed49f" }
     end = { foreground = "#24273a", background = "#a5adcb" }
