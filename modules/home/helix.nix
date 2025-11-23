@@ -3,56 +3,47 @@
 
 {
   # -------------------------------------------------------------------
-  # 📦 HELIX PACKAGES (Language Servers & Formatters)
+  # 📦 HELIX PACKAGES
   # -------------------------------------------------------------------
   home.packages = with pkgs; [
-    # --- Runtimes & Package Managers ---
-    nodejs # Essential for npx and many LSPs
-    nodePackages.pnpm # For your ESLint config
-
-    # --- Formatters ---
+    nodejs
+    nodePackages.pnpm
     dprint
     shfmt
     nodePackages.prettier
-    nixpkgs-fmt # Stays the same, this is the correct formatter
-
-    # --- Language Servers ---
-    # Web Development
+    nixpkgs-fmt
     nodePackages.typescript-language-server
-    vscode-langservers-extracted # Provides html, css, json, and eslint LSPs
+    vscode-langservers-extracted
     tailwindcss-language-server
     emmet-ls
-    nodePackages.intelephense # For PHP
-
-    # System Development
+    nodePackages.intelephense
     bash-language-server
     rust-analyzer
-    gopls # For Go
-    nil   # CORRECTED: Replaced rnix-lsp with the modern 'nil'
+    gopls
+    nil
   ];
 
   # -------------------------------------------------------------------
   # 📝 HELIX CONFIGURATION
   # -------------------------------------------------------------------
+  # NOTE: 'theme' is commented out here because the toggle-theme script 
+  # handles it in the mutable config file managed by theme.nix
   programs.helix = {
     enable = true;
     settings = {
-      # The `theme` setting is handled by the Catppuccin module.
+      # theme = "catppuccin_macchiato"; # Managed by toggle-theme
+      theme = "catppuccin_macchiato"; # Default for initial generation
       editor = {
         line-number = "relative";
         cursorline = true;
-        bufferline = "multiple"; # Updated from "always" to "multiple"
-        mouse = false;          # Added
-        soft-wrap = {           # Added
-          enable = true;
-        };
-        cursor-shape = {        # Added
-          insert = "bar";
-        };
+        bufferline = "multiple";
+        mouse = false;
+        soft-wrap = { enable = true; };
+        cursor-shape = { insert = "bar"; };
       };
-      keys = {                  # Added
+      keys = {
         normal = {
-          esc = ["collapse_selection" "keep_primary_selection"];
+          esc = [ "collapse_selection" "keep_primary_selection" ];
           space = {
             c = ":bc";
             r = ":reload-all";
@@ -62,7 +53,6 @@
     };
   };
 
-  # Declaratively create the languages.toml file from the text block below.
   xdg.configFile."helix/languages.toml".text = ''
     [[language]]
     name = "typescript"
@@ -154,7 +144,7 @@
     
     [[language]]
     name = "nix"
-    language-servers = ["nil"] # CORRECTED: Changed rnix-lsp to nil
+    language-servers = ["nil"]
     formatter = { command = "nixpkgs-fmt" }
     auto-format = true
   '';

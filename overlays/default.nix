@@ -3,18 +3,12 @@ self: super:
 let
   # Helper to strictly disable broken crypto dependencies for static builds
   fixQemu = pkg: pkg.overrideAttrs (old: {
-    # 1. Add configure flags to tell QEMU not to use these features
     configureFlags = (old.configureFlags or [ ]) ++ [
       "--disable-nettle"
       "--disable-gcrypt"
       "--disable-gnutls"
       "--disable-crypto-afalg"
     ];
-
-    # 2. Filter the buildInputs to physically remove the libraries.
-    #    This prevents the "unexpected argument" error because we aren't changing the function inputs,
-    #    we are modifying the derivation result.
-    #    CORRECTION: Used 'hasInfix' instead of 'isInfix'
     buildInputs = builtins.filter
       (x:
         let
@@ -28,6 +22,167 @@ let
   });
 in
 {
+  # -------------------------------------------------------------------
+  # 🌓 THEME TOGGLER SCRIPT
+  # -------------------------------------------------------------------
+  toggle-theme = super.writeShellScriptBin "toggle-theme" ''
+        #!${super.stdenv.shell}
+        set -e
+
+        # --- PATHS ---
+        XDG_CONFIG_HOME="''${XDG_CONFIG_HOME:-$HOME/.config}"
+        STATE_FILE="$XDG_CONFIG_HOME/current_theme"
+    
+        # Waybar Files
+        WB_THEME_FILE="$XDG_CONFIG_HOME/waybar/theme.css"
+    
+        # Hyprland Files
+        HYPR_THEME_FILE="$XDG_CONFIG_HOME/hypr/theme.conf"
+
+        # Helix
+        HX_CONFIG="$XDG_CONFIG_HOME/helix/config.toml"
+
+        # Zellij
+        ZELLIJ_CONFIG="$XDG_CONFIG_HOME/zellij/config.kdl"
+
+        # --- LOGIC ---
+        if [ ! -f "$STATE_FILE" ]; then
+          echo "dark" > "$STATE_FILE"
+        fi
+
+        CURRENT_MODE=$(cat "$STATE_FILE")
+
+        if [ "$CURRENT_MODE" = "dark" ]; then
+          NEW_MODE="light"
+      
+          # 1. GTK (For Firefox/Zen/Nemo)
+          ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-light'
+          ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Latte-Standard-Blue-Dark' || true
+
+          # 2. Waybar Colors (Latte)
+          cat > "$WB_THEME_FILE" <<EOF
+    @define-color base #eff1f5;
+    @define-color mantle #e6e9ef;
+    @define-color crust #dce0e8;
+    @define-color text #4c4f69;
+    @define-color subtext0 #6c6f85;
+    @define-color subtext1 #5c5f77;
+    @define-color surface0 #ccd0da;
+    @define-color surface1 #bcc0cc;
+    @define-color surface2 #acb0be;
+    @define-color overlay0 #9ca0b0;
+    @define-color overlay1 #8c8fa1;
+    @define-color overlay2 #7c7f93;
+    @define-color blue #1e66f5;
+    @define-color lavender #7287fd;
+    @define-color sapphire #209fb5;
+    @define-color sky #04a5e5;
+    @define-color teal #179299;
+    @define-color green #40a02b;
+    @define-color yellow #df8e1d;
+    @define-color peach #fe640b;
+    @define-color maroon #e64553;
+    @define-color red #d20f39;
+    @define-color mauve #8839ef;
+    @define-color pink #ea76cb;
+    @define-color flamingo #dd7878;
+    @define-color rosewater #dc8a78;
+    EOF
+
+          # 3. Hyprland Colors (Latte)
+          # Write config for persistence
+          echo 'general {
+              col.active_border = rgba(1e66f5ee) rgba(40a02bee) 45deg
+              col.inactive_border = rgba(bcc0ccaa)
+          }' > "$HYPR_THEME_FILE"
+          # Apply immediately
+          ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(1e66f5ee) rgba(40a02bee) 45deg"
+          ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(bcc0ccaa)"
+
+          # 4. Helix (Latte)
+          if [ -w "$HX_CONFIG" ]; then
+            ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_latte"/' "$HX_CONFIG"
+            pkill -USR1 hx || true # Reload Helix config if running
+          fi
+
+          # 5. Zellij (Latte)
+          if [ -w "$ZELLIJ_CONFIG" ]; then
+            ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-latte"/' "$ZELLIJ_CONFIG"
+          fi
+      
+          NOTIFY_ICON="weather-clear"
+          NOTIFY_MSG="Light Mode Activated"
+
+        else
+          NEW_MODE="dark"
+
+          # 1. GTK
+          ${super.glib}/bin/gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+          ${super.glib}/bin/gsettings set org.gnome.desktop.interface gtk-theme 'Catppuccin-Macchiato-Standard-Blue-Dark' || true
+
+          # 2. Waybar Colors (Macchiato)
+          cat > "$WB_THEME_FILE" <<EOF
+    @define-color base #24273a;
+    @define-color mantle #1e2030;
+    @define-color crust #181926;
+    @define-color text #cad3f5;
+    @define-color subtext0 #a5adcb;
+    @define-color subtext1 #b8c0e0;
+    @define-color surface0 #363a4f;
+    @define-color surface1 #494d64;
+    @define-color surface2 #5b6078;
+    @define-color overlay0 #6e738d;
+    @define-color overlay1 #8087a2;
+    @define-color overlay2 #9399b2;
+    @define-color blue #8aadf4;
+    @define-color lavender #b7bdf8;
+    @define-color sapphire #7dc4e4;
+    @define-color sky #91d7e3;
+    @define-color teal #8bd5ca;
+    @define-color green #a6da95;
+    @define-color yellow #eed49f;
+    @define-color peach #f5a97f;
+    @define-color maroon #ee99a0;
+    @define-color red #ed8796;
+    @define-color mauve #c6a0f6;
+    @define-color pink #f5bde6;
+    @define-color flamingo #f0c6c6;
+    @define-color rosewater #f4dbd6;
+    EOF
+
+          # 3. Hyprland Colors (Macchiato)
+          echo 'general {
+              col.active_border = rgba(8aadf4ee) rgba(a6da95ee) 45deg
+              col.inactive_border = rgba(5b6078aa)
+          }' > "$HYPR_THEME_FILE"
+          ${super.hyprland}/bin/hyprctl keyword general:col.active_border "rgba(8aadf4ee) rgba(a6da95ee) 45deg"
+          ${super.hyprland}/bin/hyprctl keyword general:col.inactive_border "rgba(5b6078aa)"
+
+          # 4. Helix (Macchiato)
+          if [ -w "$HX_CONFIG" ]; then
+            ${super.gnused}/bin/sed -i 's/theme = ".*"/theme = "catppuccin_macchiato"/' "$HX_CONFIG"
+            pkill -USR1 hx || true
+          fi
+
+          # 5. Zellij (Macchiato)
+          if [ -w "$ZELLIJ_CONFIG" ]; then
+            ${super.gnused}/bin/sed -i 's/theme ".*"/theme "catppuccin-macchiato"/' "$ZELLIJ_CONFIG"
+          fi
+
+          NOTIFY_ICON="weather-clear-night"
+          NOTIFY_MSG="Dark Mode Activated"
+        fi
+
+        # SAVE STATE
+        echo "$NEW_MODE" > "$STATE_FILE"
+
+        # RELOAD WAYBAR
+        pkill -SIGUSR2 waybar || true
+
+        # NOTIFY
+        ${super.libnotify}/bin/notify-send -i "$NOTIFY_ICON" "Theme Toggle" "$NOTIFY_MSG"
+  '';
+
   # Overlay 1: The battery limit toggle script
   toggle-battery-limit = super.writeShellScriptBin "toggle-battery-limit" ''
     #!${super.stdenv.shell}
@@ -77,13 +232,8 @@ in
   };
 
   # Overlay 3: Fix qemu-user-static build on aarch64
-  # Apply the robust fix to both base qemu and the static user variant
   qemu = fixQemu super.qemu;
   qemu-user-static = fixQemu super.qemu-user-static;
-
-  # -------------------------------------------------------------------
-  # ⬇️ TAILSCALE SCRIPTS ⬇️
-  # -------------------------------------------------------------------
 
   # Overlay 4: The exit node STATUS script for Waybar (with logging)
   waybar-tailscale-status = super.writeShellScriptBin "waybar-tailscale-status" ''
@@ -97,7 +247,6 @@ in
     PATH=${super.jq}/bin:$PATH
     STATUS_JSON=$(${super.tailscale}/bin/tailscale status --json 2>/dev/null || echo "{}")
     
-    # New robust logic: Use the ExitNodeStatus.ID to look up the full peer details.
     EXIT_NODE_PEER_JSON=$(echo "$STATUS_JSON" | jq '
       .ExitNodeStatus.ID as $exit_node_id |
       if $exit_node_id == null then
@@ -128,7 +277,6 @@ in
       echo "--- SELECTOR SCRIPT RUN $(date) ---"
       PATH=${super.jq}/bin:$PATH
 
-      # The jq query outputs the full DNS Name, a tab character, and then the user-friendly display string.
       EXIT_NODES=$(${super.tailscale}/bin/tailscale status --json | \
         jq -r '.Peer | to_entries[] | select(.value.ExitNodeOption == true) | "\(.value.DNSName)\t\(.value.Location.City), \(.value.Location.Country) (\(.value.HostName))"')
       
@@ -147,7 +295,6 @@ in
           echo "Running command: sudo ${super.tailscale}/bin/tailscale set --exit-node """
           sudo ${super.tailscale}/bin/tailscale set --exit-node ""
       else
-          # Use 'awk' to extract the first field (the full DNS Name) from the selected line.
           NODE_HOSTNAME=$(${super.gawk}/bin/awk '{print $1}' <<< "$CHOICE")
           echo "Running command: sudo ${super.tailscale}/bin/tailscale set --exit-node "$NODE_HOSTNAME" --exit-node-allow-lan-access"
           sudo ${super.tailscale}/bin/tailscale set --exit-node "$NODE_HOSTNAME" --exit-node-allow-lan-access
@@ -162,20 +309,14 @@ in
     runtimeInputs = with super; [ bash bluez pipewire libnotify gnugrep coreutils ];
     text = ''
       set -euo pipefail
-
-      # --- CONFIGURATION ---
       BT_MAC="F4:9D:8A:30:F2:A8"
       PW_SINK_NAME="''${BT_MAC//:/_}"
-
-      # --- SCRIPT LOGIC ---
       notify() {
         notify-send "Bluetooth" "$1" -i "audio-headphones-bluetooth"
       }
-
       if bluetoothctl info "$BT_MAC" | grep -q "Connected: yes"; then
         notify "Disconnecting headphones..."
         bluetoothctl disconnect "$BT_MAC"
-
         INTERNAL_SINK_ID=$(wpctl status | grep -A 3 Sinks | grep -v 'bluez' | grep -oP '^\s*\K\d+' | head -n 1)
         if [ -n "$INTERNAL_SINK_ID" ]; then
           wpctl set-default "$INTERNAL_SINK_ID"
@@ -188,7 +329,7 @@ in
           sleep 1
           bluetoothctl connect "$BT_MAC"
         fi
-
+        
         # shellcheck disable=SC2034
         for i in {1..5}; do
           SINK_ID=$(wpctl status | grep "bluez" | grep "$PW_SINK_NAME" | grep -oP '^\s*\K\d+')
@@ -199,7 +340,6 @@ in
           fi
           sleep 1
         done
-
         notify "Error: Could not find audio sink after connecting."
         exit 1
       fi

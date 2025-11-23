@@ -1,5 +1,5 @@
 # /etc/nixos/modules/home/hyprland.nix
-{ ... }:
+{ config, ... }:
 
 {
   # -------------------------------------------------------------------
@@ -11,13 +11,18 @@
       monitor = [ ",preferred,auto,2" ];
       "exec-once" = [
         "dunst"
+        # Ensure the theme is applied on startup (if file exists)
+        # This runs the script to set initial gtk/hypr settings based on state file
+        "toggle-theme"
       ];
-      "exec" = [
-      ];
+
+      # Source the dynamic theme file (created by toggle-theme script)
+      source = [ "~/.config/hypr/theme.conf" ];
 
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
+        "SUPER_SHIFT, T, exec, toggle-theme" # <--- THEME TOGGLE BIND
         "SUPER_SHIFT, O, exec, fuzzel"
         "SUPER_SHIFT,S,exec,hyprshot --mode region --output ''$HOME/Screenshots/$(date +''%Y-%m-%d_%H-%M-%S'').png'' --copy"
         "SUPER, E, exec, nemo"
@@ -66,6 +71,7 @@
         "gaps_in" = 5;
         "gaps_out" = 10;
         border_size = 2;
+        # Default fallback colors if source file missing
         "col.active_border" = "rgba(33ccffee) rgba(00ff99ee) 45deg";
         "col.inactive_border" = "rgba(595959aa)";
         layout = "dwindle";

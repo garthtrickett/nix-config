@@ -18,8 +18,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # FIXED: Switch back to nix-community flake. 
-    # The 'mozilla' flake does not have 'overlays.default', causing the error.
     firefox-nightly = {
       url = "github:nix-community/flake-firefox-nightly";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -41,18 +39,17 @@
       pkgs = import nixpkgs {
         inherit system;
         overlays = with inputs; [
-          (import ./overlays)
-          # This now works correctly because the nix-community flake exports 'overlays.default'
           firefox-nightly.overlays.default
           (final: prev: {
             zjstatus = zjstatus.packages.${prev.system}.default;
           })
+          (import ./overlays)
         ];
         config = {
           allowUnfreePredicate = pkg: builtins.elem (pkg.pname or pkg.name) [
             "intelephense"
             "firefox-nightly-bin"
-            "firefox-nightly-bin-unwrapped" # <--- ADDED: This is the specific package triggering the error
+            "firefox-nightly-bin-unwrapped"
           ];
         };
       };
@@ -65,16 +62,13 @@
         modules = [
           { nixpkgs.pkgs = pkgs; }
 
-          # Import NixOS modules from flakes
           apple-silicon.nixosModules.apple-silicon-support
           catppuccin.nixosModules.catppuccin
           home-manager.nixosModules.home-manager
           sops-nix.nixosModules.sops
 
-          # Import local NixOS configuration
           ./configuration.nix
 
-          # Configure Home Manager
           {
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.useGlobalPkgs = true;

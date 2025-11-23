@@ -1,7 +1,3 @@
-############################################################
-##########           START home-garth.nix            ##########
-############################################################
-
 # /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
@@ -21,21 +17,14 @@
     age.keyFile = "/home/garth/.config/sops/age/keys.txt";
     defaultSopsFile = ./secrets.yaml;
 
-    # Define the user-specific secrets that Home Manager needs.
     secrets.GEMINI_API_KEY = {
       path = "${config.home.homeDirectory}/.config/gemini/api-key";
       mode = "0400";
     };
 
-    # 🔑 SSH Key Deployment (Raw Output)
-
-    # ☁️ AWS Credentials
-    # We define these so sops decrypts them, but we don't assign a specific path
-    # because we consume them in the templates below.
     secrets.aws_access_key_id = { };
     secrets.aws_secret_access_key = { };
 
-    # Generate ~/.aws/credentials
     templates."aws/credentials" = {
       path = "${config.home.homeDirectory}/.aws/credentials";
       content = ''
@@ -45,7 +34,6 @@
       '';
     };
 
-    # Generate ~/.aws/config
     templates."aws/config" = {
       path = "${config.home.homeDirectory}/.aws/config";
       content = ''
@@ -56,57 +44,6 @@
     };
   };
 
-  # -------------------------------------------------------------------
-  # 🔧 FIX SSH KEY FORMATTING (RUNTIME SERVICE)
-  # -------------------------------------------------------------------
-  # This service fixes the issue where sops/yaml flattens the SSH key.
-  # It runs at runtime (systemd), avoiding the 'pure evaluation' build error.
-  systemd.user.services.format-ssh-key = {
-    Unit = {
-      Description = "Format SSH Key from Sops Raw Output";
-      # Run immediately after sops-nix has decrypted the secrets
-      After = [ "sops-nix.service" ];
-      Wants = [ "sops-nix.service" ];
-    };
-    Service = {
-      Type = "oneshot";
-      # Script: Checks if raw key is single-line. If so, formats it. If not, copies it.
-      ExecStart =
-        let
-          script = pkgs.writeShellScript "format-ssh-key-script" ''
-            RAW_KEY="${config.home.homeDirectory}/.ssh/id_ed25519_raw"
-            FINAL_KEY="${config.home.homeDirectory}/.ssh/id_ed25519"
-
-            if [ ! -f "$RAW_KEY" ]; then
-              echo "No raw key found at $RAW_KEY. Sops might not be ready."
-              exit 0
-            fi
-
-            # Check line count. If < 2, it implies a flattened single-line key.
-            LINE_COUNT=$(${pkgs.coreutils}/bin/wc -l < "$RAW_KEY")
-
-            if [ "$LINE_COUNT" -lt 2 ]; then
-               echo "Detected single-line SSH key. Formatting..."
-               cat "$RAW_KEY" | \
-               ${pkgs.gnused}/bin/sed 's/-----END OPENSSH PRIVATE KEY-----/\n&/' | \
-               ${pkgs.gnused}/bin/sed 's/-----BEGIN OPENSSH PRIVATE KEY-----/&\n/' | \
-               ${pkgs.gfold}/bin/fold -w 64 > "$FINAL_KEY"
-            else
-               echo "SSH key appears valid (multi-line). Copying..."
-               cp "$RAW_KEY" "$FINAL_KEY"
-            fi
-
-            # Ensure correct permissions (Read/Write for user only)
-            chmod 600 "$FINAL_KEY"
-            echo "SSH key successfully deployed to $FINAL_KEY"
-          '';
-        in
-        "${script}";
-    };
-    Install = {
-      WantedBy = [ "default.target" ];
-    };
-  };
 
   # -------------------------------------------------------------------
   # ⚙️ GLOBAL ENVIRONMENT & SESSION VARIABLES
@@ -115,6 +52,8 @@
     EDITOR = "hx";
     VISUAL = "hx";
     MOZ_ENABLE_WAYLAND = "1";
+    # Fix for Electron/Chromium apps on Hyprland (prevents silent crashes)
+    NIXOS_OZONE_WL = "1";
   };
 
   # -------------------------------------------------------------------
@@ -128,17 +67,13 @@
   # -------------------------------------------------------------------
   programs.ssh = {
     enable = true;
+    # Explicitly set this to avoid warnings about future defaults
+    enableDefaultConfig = true;
 
     matchBlocks = {
       "*" = {
         setEnv = { TERM = "xterm-256color"; };
         addKeysToAgent = "yes";
-      };
-      "vultr" = {
-        hostname = "139.84.201.119";
-        user = "root";
-        # Point SSH to the FINAL formatted key, not the raw one
-        identityFile = "${config.home.homeDirectory}/.ssh/id_ed25519";
       };
     };
   };
@@ -196,7 +131,6 @@
 
     initContent = ''
       # --- API KEYS ---
-      # The path is guaranteed to exist and is linked by Home Manager
       if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
         export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
       fi
@@ -204,10 +138,22 @@
       # --- HELPER FUNCTIONS ---
       rebuild() {
         (
-          cd /etc/nixos &&
-          echo "==> Temporarily changing directory to /etc/nixos" &&
+          TARGET_DIR="$HOME/nixos-config"
+          if [ ! -d "$TARGET_DIR" ]; then
+            TARGET_DIR="/etc/nixos"
+          fi
+          
+          cd "$TARGET_DIR"
+          
+          # If we are in a git repo, we must stage new files so Nix Flakes can see them
+          if git rev-parse --git-dir > /dev/null 2>&1; then
+            echo "==> Staging changes for Flake..."
+            git add .
+          fi
+
+          echo "==> Building system from $TARGET_DIR" &&
           sudo nixos-rebuild switch --flake .#nixos "$@" &&
-          echo "==> Returning to original directory"
+          echo "==> Done"
         )
       }
 
@@ -216,16 +162,10 @@
       alias gcom="git add . && git commit -m"
       alias gam="git add . && git commit --amend --no-edit"
       alias gmain="git checkout main && git pull origin main"
-
-      # CLEAN: Prune deleted remote branches and force-delete local branches marked [gone].
       alias gclean="git fetch -p && git branch -vv | grep ': gone]' | awk '{print \$1}' | xargs git branch -D 2>/dev/null"
-
-      # NUKE: Force delete ALL local branches except main (Use with caution!)
       alias gnuke="git branch | grep -v 'main' | xargs git branch -D 2>/dev/null"
 
       # --- GIT WORKFLOW FUNCTIONS ---
-
-      # START: Create a new branch from your CURRENT location.
       function gstart() {
         if [ -z "$1" ]; then
           echo "Error: Please provide a branch name."
@@ -235,12 +175,8 @@
         git checkout -b "$1"
       }
 
-      # PR: Push current branch and open GitHub PR page.
       function gpr() {
-        # Force push safely (allows overwriting your own history, but not others)
         git push --force-with-lease -u origin HEAD
-
-        # Create PR (suppress error if PR already exists)
         gh pr create --web || true
       }
 
@@ -346,7 +282,8 @@
     pkgs.toggle-bt-headphones
     pkgs.bun
     pkgs.gemini-cli
-    pkgs.awscli2 # Added for AWS CDK interaction
+    pkgs.awscli2
+    pkgs.file
   ];
 
   # -------------------------------------------------------------------

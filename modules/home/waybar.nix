@@ -1,71 +1,35 @@
-############################################################
-##########        START modules/home/waybar.nix        ##########
-############################################################
-
 # /etc/nixos/modules/home/waybar.nix
 { pkgs, ... }:
 
 let
-  # Define the script directly here to ensure Waybar finds the exact store path.
   wifiStatusScript = pkgs.writeShellScriptBin "waybar-wifi-status" ''
     #!${pkgs.bash}/bin/bash
     set -euo pipefail
-
-    # 1. SET PATH: Ensure all tools are available
     export PATH="${pkgs.lib.makeBinPath [ 
-      pkgs.coreutils 
-      pkgs.gnugrep 
-      pkgs.gnused 
-      pkgs.gawk 
-      pkgs.iproute2 
-      pkgs.iwd 
+      pkgs.coreutils pkgs.gnugrep pkgs.gnused pkgs.gawk pkgs.iproute2 pkgs.iwd 
     ]}:$PATH"
 
-    # 2. LOGGING: Debug to /tmp/waybar-wifi.log
-    # View with: tail -f /tmp/waybar-wifi.log
-    LOG_FILE="/tmp/waybar-wifi.log"
-    # exec 2>> "$LOG_FILE" # Error logging
-    
-    # Uncomment the next line to see EVERY run in the log (spammy but useful for debugging)
-    # echo "$(date): Running..." >> "$LOG_FILE"
-
-    # --- Start Script ---
-
-    # Detect interface (usually wlan0 on Asahi)
     INTERFACE=$(ip link show | grep -oP 'wlan\d+' | sort | head -n 1)
-    
     if [ -z "$INTERFACE" ]; then
         echo "{\"text\": \" No Interface\", \"tooltip\": \"No wireless interface found\", \"class\": \"disconnected\"}"
         exit 0
     fi
 
-    # Get status from iwd
-    # We use || true to prevent the script from crashing if iwctl fails temporarily
     STATUS=$(iwctl station "$INTERFACE" show || echo "State disconnected")
-    
-    # Extract State
     STATE=$(echo "$STATUS" | grep "State" | awk '{$1=""; print $0}' | xargs)
 
     if [[ "$STATE" == "connected" ]]; then
-      # Extract SSID
       SSID=$(echo "$STATUS" | grep "Connected network" | sed 's/.*Connected network\s*//' | xargs)
-      
       if [ -z "$SSID" ]; then SSID="Hidden"; fi
-
       echo "{\"text\": \" $SSID\", \"tooltip\": \"Interface: $INTERFACE\nSSID: $SSID\nState: Connected\", \"class\": \"connected\"}"
-    
     elif [[ "$STATE" == "connecting" || "$STATE" == "authenticating" || "$STATE" == "associating" ]]; then
       echo "{\"text\": \" Connecting...\", \"tooltip\": \"Interface: $INTERFACE\nState: $STATE\", \"class\": \"scanning\"}"
-      
     else
       echo "{\"text\": \" Disconnected\", \"tooltip\": \"Interface: $INTERFACE\nState: $STATE\", \"class\": \"disconnected\"}"
     fi
   '';
 in
 {
-  # -------------------------------------------------------------------
-  # 📊 WAYBAR SYSTEMD USER SERVICE
-  # -------------------------------------------------------------------
   systemd.user.services.waybar = {
     Unit = {
       Description = "Waybar";
@@ -81,12 +45,15 @@ in
     };
   };
 
-  # -------------------------------------------------------------------
-  # 📊 WAYBAR CONFIGURATION
-  # -------------------------------------------------------------------
   programs.waybar = {
     enable = true;
     style = ''
+      /* 
+         IMPORT THE DYNAMIC THEME FILE 
+         This file is written by the 'toggle-theme' script.
+      */
+      @import "theme.css";
+
       * {
           font-family: "FiraCode Nerd Font", FontAwesome, sans-serif;
           font-size: 14px;
@@ -95,11 +62,12 @@ in
       }
 
       window#waybar {
-          background-color: rgba(30, 30, 46, 0.85);
-          color: #cdd6f4;
+          background-color: @base; /* Uses variable from theme.css */
+          color: @text;
           transition-property: background-color;
           transition-duration: .5s;
           border-radius: 10px;
+          opacity: 0.9; 
       }
 
       #workspaces {
@@ -110,86 +78,75 @@ in
       #workspaces button {
           padding: 2px 10px;
           margin: 0 3px;
-          color: #cdd6f4;
-          background-color: #313244;
+          color: @text;
+          background-color: @surface1;
           border-radius: 8px;
           transition: all 0.3s ease;
       }
 
       #workspaces button.active {
-          background-color: #89b4fa;
-          color: #1e1e2e;
+          background-color: @blue;
+          color: @base;
       }
 
       #workspaces button:hover {
-          background-color: #b4befe;
-          color: #1e1e2e;
+          background-color: @lavender;
+          color: @base;
       }
 
       #window {
         font-weight: bold;
         margin-right: 15px;
+        color: @text;
       }
 
-      #clock,
-      #battery,
-      #cpu,
-      #memory,
-      #network,
-      #pulseaudio,
-      #backlight,
-      #custom-battery-limit,
-      #custom-logout,
-      #custom-tailscale,
-      #custom-wifi {
+      #clock, #battery, #cpu, #memory, #network, #pulseaudio, #backlight, 
+      #custom-battery-limit, #custom-logout, #custom-tailscale, #custom-wifi,
+      #custom-theme {
           padding: 0 10px;
           margin: 5px 3px;
-          color: #cdd6f4;
+          color: @text;
       }
 
-      #pulseaudio { color: #89b4fa; }
-      #memory { color: #a6e3a1; }
-      #cpu { color: #fab387; }
-      #backlight { color: #f9e2af; }
-      
-      /* Network Speed (Center) */
-      #network { color: #b4befe; }
+      #pulseaudio { color: @blue; }
+      #memory { color: @green; }
+      #cpu { color: @peach; }
+      #backlight { color: @yellow; }
+      #network { color: @lavender; }
 
-      /* Custom Wifi (Right) */
-      #custom-wifi { color: #b4befe; }
-      #custom-wifi.disconnected { color: #f38ba8; } /* Red */
-      #custom-wifi.scanning { color: #fab387; }     /* Orange */
+      #custom-wifi { color: @lavender; }
+      #custom-wifi.disconnected { color: @red; }
+      #custom-wifi.scanning { color: @peach; }
       
-      #battery { color: #a6e3a1; }
-      #battery.charging { color: #a6e3a1; }
-      #battery.warning:not(.charging) { color: #fab387; }
+      #battery { color: @green; }
+      #battery.charging { color: @green; }
+      #battery.warning:not(.charging) { color: @peach; }
       #battery.critical:not(.charging) {
-          color: #f38ba8;
+          color: @red;
           animation-name: blink;
           animation-duration: 0.5s;
-          animation-timing-function: linear;
           animation-iteration-count: infinite;
           animation-direction: alternate;
       }
 
       @keyframes blink {
           to {
-              background-color: #f38ba8;
-              color: #1e1e2e;
+              background-color: @red;
+              color: @base;
           }
       }
 
-      #custom-tailscale {
-        color: #f38ba8; /* Catppuccin Red for inactive */
-      }
-      
-      #custom-tailscale.active {
-        color: #a6e3a1; /* Catppuccin Green for active */
-      }
+      #custom-tailscale { color: @red; }
+      #custom-tailscale.active { color: @green; }
 
       #custom-logout {
-        color: #f38ba8;
+        color: @red;
         margin-right: 5px;
+      }
+      
+      #custom-theme {
+        color: @mauve;
+        margin-right: 10px;
       }
     '';
     settings = {
@@ -198,7 +155,7 @@ in
         position = "top";
         modules-left = [ "hyprland/workspaces" "hyprland/window" ];
         modules-center = [ "cpu" "memory" "network#speed" ];
-        modules-right = [ "custom/tailscale" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
+        modules-right = [ "custom/theme" "custom/tailscale" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
         "hyprland/workspaces" = {
           format = "{name}";
           format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -217,7 +174,6 @@ in
           format-disconnected = "";
           tooltip = false;
         };
-        # HERE is the critical fix: Using the interpolated path to the script
         "custom/wifi" = {
           exec = "${wifiStatusScript}/bin/waybar-wifi-status";
           return-type = "json";
@@ -257,6 +213,11 @@ in
           format = "󰗼";
           tooltip-format = "Logout";
           on-click = "hyprctl dispatch exit";
+        };
+        "custom/theme" = {
+          format = "/";
+          tooltip-format = "Toggle Dark/Light Mode";
+          on-click = "${pkgs.toggle-theme}/bin/toggle-theme";
         };
       };
     };

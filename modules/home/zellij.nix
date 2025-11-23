@@ -1,7 +1,3 @@
-############################################################
-##########          START modules/home/zellij.nix          ##########
-############################################################
-
 { config, pkgs, ... }:
 
 {
@@ -26,6 +22,7 @@
   programs.zellij = {
     enable = true;
     settings = {
+      # Default to macchiato, script will sed this line in the mutable copy
       theme = "catppuccin-macchiato";
       pane_frames = false;
       default_shell = "zsh";
@@ -73,7 +70,6 @@
                     border_enabled "false"
                     hide_frame_for_single_pane "true"
 
-                    // Set the format for normal and active tabs to include the index
                     tab_normal "#[fg=overlay1,bg=mantle] {index} {name} "
                     tab_active "#[fg=mantle,bg=blue,bold] {index}. {name} "
 
