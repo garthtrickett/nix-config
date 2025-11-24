@@ -1,4 +1,3 @@
-# /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
 {
@@ -146,7 +145,7 @@
           cd "$TARGET_DIR"
           
           # If we are in a git repo, we must stage new files so Nix Flakes can see them
-          if git rev-parse --git-dir > /dev/null 2>&1; then
+          if git rev-parse --git-dir >/dev/null 2>&1; then
             echo "==> Staging changes for Flake..."
             git add .
           fi
@@ -263,7 +262,7 @@
     pkgs.nerd-fonts.fira-code
     pkgs.hyprsunset
     pkgs.libreoffice
-    pkgs.libnotify
+    # pkgs.libnotify # Removed: Now a system-wide package in configuration.nix
     pkgs.gnugrep
     pkgs.gnused
     pkgs.gfold

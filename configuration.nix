@@ -2,7 +2,6 @@
 ##########          START configuration.nix          ##########
 ############################################################
 
-# /etc/nixos/configuration.nix
 { config, lib, pkgs, ... }:
 
 {
@@ -43,6 +42,29 @@
   time.timeZone = "Australia/Sydney";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
+
+  # -------------------------------------------------------------------
+  # 💾 SWAP FILE CONFIGURATION & OOM KILLER
+  # Prevent system freezes under heavy memory load by adding swap and earlyoom.
+  # -------------------------------------------------------------------
+  swapDevices = [
+    { device = "/swap/swapfile"; size = 4096; } # 4GB Swap File
+  ];
+  systemd.tmpfiles.rules = [
+    "d /swap 0755 root root"
+  ];
+  boot.initrd.postDeviceCommands = lib.mkAfter ''
+    mkdir -p /swap
+  '';
+
+  services.earlyoom = {
+    enable = true;
+    # Kill the largest process when 10% of memory is free, or 50% of swap is used
+    freeMemThreshold = 10;
+    freeSwapThreshold = 50;
+    # Enable notification to user through libnotify
+    extraArgs = [ "-n" ];
+  };
 
   # -------------------------------------------------------------------
   # 🖥️ GRAPHICAL ENVIRONMENT (HYPRLAND)
@@ -267,6 +289,7 @@
     postgresql
     brightnessctl
     firefox-nightly-bin
+    libnotify # Added libnotify to system packages for earlyoom user notifications
   ];
   programs.zsh.enable = true;
   programs.mtr.enable = true;
