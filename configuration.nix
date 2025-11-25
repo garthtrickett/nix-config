@@ -36,8 +36,6 @@
   networking.hostName = "nixos";
 
   # CRITICAL: Enables the dconf DBus service. 
-  # Without this, GSettings changes (like theme switching) won't broadcast 
-  # signals to running apps like Firefox.
   programs.dconf.enable = true;
 
   networking.extraHosts = ''
@@ -255,7 +253,7 @@
     envsubst
     postgresql
     brightnessctl
-    firefox-nightly-bin
+    # firefox-nightly-bin  <-- REMOVED: Now managed by Home Manager
     libnotify
   ];
   programs.zsh.enable = true;

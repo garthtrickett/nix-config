@@ -1,3 +1,4 @@
+# /etc/nixos/home-garth.nix
 { config, pkgs, lib, inputs, ... }:
 
 {
@@ -53,6 +54,8 @@
     MOZ_ENABLE_WAYLAND = "1";
     # Fix for Electron/Chromium apps on Hyprland (prevents silent crashes)
     NIXOS_OZONE_WL = "1";
+    # Ensure applications can find the GSettings schemas
+    XDG_DATA_DIRS = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}:$XDG_DATA_DIRS";
   };
 
   # -------------------------------------------------------------------
@@ -116,6 +119,34 @@
       };
       init = {
         defaultBranch = "main";
+      };
+    };
+  };
+
+  # -------------------------------------------------------------------
+  # 🦊 FIREFOX NIGHTLY CONFIGURATION
+  # -------------------------------------------------------------------
+  programs.firefox = {
+    enable = true;
+    # Use the nightly binary from your overlay
+    package = pkgs.firefox-nightly-bin;
+
+    profiles.garth = {
+      id = 0;
+      name = "garth";
+      isDefault = true;
+
+      settings = {
+        # 0 = Dark, 1 = Light, 2 = System (Automatic), 3 = Browser
+        # This forces the "Website appearance" setting to Automatic
+        "layout.css.prefers-color-scheme.content-override" = 2;
+
+        # Force Firefox to use the XDG Portal for settings (DBus)
+        # This is CRITICAL for reading the theme signal
+        "widget.use-xdg-desktop-portal.settings" = 1;
+
+        # Optional: General Wayland smoothness tweaks
+        "gfx.webrender.all" = true;
       };
     };
   };
@@ -262,7 +293,6 @@
     pkgs.nerd-fonts.fira-code
     pkgs.hyprsunset
     pkgs.libreoffice
-    # pkgs.libnotify # Removed: Now a system-wide package in configuration.nix
     pkgs.gnugrep
     pkgs.gnused
     pkgs.gfold
@@ -283,6 +313,11 @@
     pkgs.gemini-cli
     pkgs.awscli2
     pkgs.file
+    pkgs.glib
+    # CRITICAL: These packages provide the schemas needed for gsettings to work 
+    # and for Firefox to read the theme changes via DBus.
+    pkgs.gsettings-desktop-schemas
+    pkgs.gtk3
   ];
 
   # -------------------------------------------------------------------

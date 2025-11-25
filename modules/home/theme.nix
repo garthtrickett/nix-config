@@ -12,6 +12,9 @@
     alacritty.enable = false;
     waybar.enable = false;
     zellij.enable = true;
+    # CRITICAL: Disable Firefox styling so it doesn't conflict with our 
+    # manual profile management and dynamic system theme detection.
+    firefox.enable = false;
   };
 
   # -------------------------------------------------------------------
@@ -40,8 +43,6 @@
   };
 
   # FIX: Force overwrite GTK settings to avoid "clobbered" backup errors.
-  # This tells Home Manager to replace the file even if it exists, skipping the
-  # backup step that is currently failing.
   xdg.configFile."gtk-3.0/settings.ini".force = true;
   xdg.configFile."gtk-4.0/settings.ini".force = true;
 
@@ -104,9 +105,7 @@
        touch ${config.xdg.configHome}/alacritty/theme.toml
     fi
 
-    # GTK Settings (CRITICAL for Firefox & Apps)
-    # We resolve the symlink to a real file so `sed -i` in toggle-theme works 
-    # without breaking the symlink chain or hitting permission errors.
+    # GTK Settings
     GTK3_SETTINGS="${config.xdg.configHome}/gtk-3.0/settings.ini"
     if [ -L "$GTK3_SETTINGS" ]; then
        cp --remove-destination "$(readlink "$GTK3_SETTINGS")" "$GTK3_SETTINGS"
@@ -131,8 +130,5 @@
   home.sessionVariables = {
     GDK_SCALE = "2";
     QT_SCALE_FACTOR = "2";
-    # CRITICAL: We must ensure GTK_THEME is NOT set, otherwise Firefox 
-    # will permanently lock to the initial theme and ignore our toggle script.
-    GTK_THEME = "";
   };
 }

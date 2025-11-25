@@ -26,7 +26,7 @@ final: prev:
           final.zellij
         ]}:$PATH"
 
-        # Fix GSettings Schemas
+        # Fix GSettings Schemas so the script can change settings without crashing
         export XDG_DATA_DIRS="${final.gsettings-desktop-schemas}/share/gsettings-schemas/${final.gsettings-desktop-schemas.name}:${final.gtk3}/share/gsettings-schemas/${final.gtk3.name}:$XDG_DATA_DIRS"
 
         # --- VARIABLES ---
@@ -45,11 +45,17 @@ final: prev:
     
         find_theme_name() {
           local keyword="$1"
-          local found=$(find "$HOME/.nix-profile/share/themes" "/run/current-system/sw/share/themes" -maxdepth 1 -type d -name "*$keyword*" 2>/dev/null | head -n 1)
+          
+          # FIX: Added -L (follow symlinks) so find works with Nix profiles.
+          # FIX: Added sort to ensure we pick the base theme over variants like -hdpi or -xhdpi
+          local found=$(find -L "$HOME/.nix-profile/share/themes" "/run/current-system/sw/share/themes" -maxdepth 1 -type d -iname "*$keyword*" 2>/dev/null | sort | head -n 1)
+          
           if [ -n "$found" ]; then
             basename "$found"
           else
-            echo "Catppuccin-$keyword-Standard-Blue-Dark" 
+            # Updated fallback to include the likely suffix if detection fails, 
+            # though detection should work now with -L.
+            echo "catppuccin-$keyword-blue-standard+rimless,black" | tr '[:upper:]' '[:lower:]'
           fi
         }
 
@@ -78,7 +84,8 @@ final: prev:
                  echo "gtk-application-prefer-dark-theme=$dark_val" >> "$file"
             fi
             sed -i "s/^gtk-application-prefer-dark-theme=.*/gtk-application-prefer-dark-theme=$dark_val/" "$file"
-            sed -i "s/^gtk-theme-name=.*/gtk-theme-name=$theme_name/" "$file"
+            # Use @ as delimiter to handle paths or + characters safely in the theme name
+            sed -i "s@^gtk-theme-name=.*@gtk-theme-name=$theme_name@" "$file"
           else
             echo "WARNING: $file not writable."
           fi
@@ -88,13 +95,6 @@ final: prev:
           local new_theme="$1"
           if command -v zellij >/dev/null 2>&1; then
               echo "Updating Zellij configuration..."
-              # Note: Runtime updates for background sessions via CLI are not reliably supported 
-              # in current Zellij versions without creating new session errors.
-              # We rely on the config file update (handled in main logic) for new tabs/sessions.
-              
-              # We list sessions purely for logging/cleanup purposes here, but won't trigger commands
-              # that cause errors.
-              
               # Filter out EXITED sessions to avoid spamming logs with "dead" session errors
               SESSIONS=$(zellij list-sessions 2>/dev/null | grep -v "EXITED" | sed 's/\x1b\[[0-9;]*m//g' | awk '{print $1}')
               
@@ -117,6 +117,7 @@ final: prev:
           # -> LIGHT MODE
           NEW_MODE="light"
           THEME_NAME=$(find_theme_name "Latte")
+          echo "Detected Light Theme Name: $THEME_NAME"
       
           update_gsettings 'prefer-light' "$THEME_NAME"
           update_gtk_file "$GTK3_CONFIG" "0" "$THEME_NAME"
@@ -223,6 +224,7 @@ final: prev:
           # -> DARK MODE
           NEW_MODE="dark"
           THEME_NAME=$(find_theme_name "Macchiato")
+          echo "Detected Dark Theme Name: $THEME_NAME"
 
           update_gsettings 'prefer-dark' "$THEME_NAME"
           update_gtk_file "$GTK3_CONFIG" "1" "$THEME_NAME"
