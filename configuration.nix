@@ -1,3 +1,5 @@
+# /etc/nixos/configuration.nix
+
 ############################################################
 ##########          START configuration.nix          ##########
 ############################################################
@@ -33,8 +35,10 @@
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
 
-  # not needed anymore replaced by systemd-resolved
-  # networking.resolvconf.enable = true;
+  # CRITICAL: Enables the dconf DBus service. 
+  # Without this, GSettings changes (like theme switching) won't broadcast 
+  # signals to running apps like Firefox.
+  programs.dconf.enable = true;
 
   networking.extraHosts = ''
     127.0.0.1 garth.localhost.com.au
@@ -45,7 +49,6 @@
 
   # -------------------------------------------------------------------
   # 💾 SWAP FILE CONFIGURATION & OOM KILLER
-  # Prevent system freezes under heavy memory load by adding swap and earlyoom.
   # -------------------------------------------------------------------
   swapDevices = [
     { device = "/swap/swapfile"; size = 4096; } # 4GB Swap File
@@ -59,10 +62,8 @@
 
   services.earlyoom = {
     enable = true;
-    # Kill the largest process when 10% of memory is free, or 50% of swap is used
     freeMemThreshold = 10;
     freeSwapThreshold = 50;
-    # Enable notification to user through libnotify
     extraArgs = [ "-n" ];
   };
 
@@ -102,10 +103,7 @@
   # 🐳 VIRTUALISATION (DOCKER) & EMULATION
   # -------------------------------------------------------------------
   virtualisation.docker.enable = true;
-  # Enable binfmt emulation for cross-compilation (ARM64 -> x86_64)
   boot.binfmt.emulatedSystems = [ "x86_64-linux" ];
-  # This forces the 'F' flag (Fix Binary), loading the interpreter into memory.
-  # Essential for running x86 containers on ARM.
   boot.binfmt.preferStaticEmulators = true;
 
   # -------------------------------------------------------------------
@@ -141,9 +139,6 @@
     pulse.enable = true;
     wireplumber.enable = true;
 
-    # FIX 1: Audio Quantums & Rate
-    # Forcing a specific rate prevents sample-rate switching pops.
-    # Higher quantums prevent buffer underruns (crackling).
     extraConfig.pipewire."99-input-latency" = {
       "context.properties" = {
         "default.clock.rate" = 48000;
@@ -153,8 +148,6 @@
       };
     };
 
-    # FIX 2: WirePlumber Bluetooth Configuration
-    # Replaced the old pipewire module config with modern WirePlumber logic.
     wireplumber.extraConfig = {
       "10-bluez" = {
         "monitor.bluez.properties" = {
@@ -162,7 +155,6 @@
           "bluez5.enable-msbc" = true;
           "bluez5.enable-hw-volume" = true;
           "bluez5.headroom" = 8192;
-          # Switched priority: SBC-XQ is often more stable on Linux/Asahi than AAC
           "bluez5.codecs" = [ "sbc_xq" "aac" "sbc" ];
         };
       };
@@ -198,7 +190,7 @@
   users.users.root.home = lib.mkForce "/root";
 
   # -------------------------------------------------------------------
-  # 🔑 SECRETS MANAGEMENT (SYSTEM-WIDE)
+  # 🔑 SECRETS MANAGEMENT
   # -------------------------------------------------------------------
   sops = {
     defaultSopsFile = ./secrets.yaml;
@@ -210,31 +202,17 @@
     group = "tailscaled";
   };
 
-
   # -------------------------------------------------------------------
   # ⚙️ POWER MANAGEMENT
   # -------------------------------------------------------------------
-
-  # Note: powertop auto-tune can sometimes be too aggressive with 
-  # USB autosuspend on Asahi. If trackpad lags, disable this.
   powerManagement.powertop.enable = true;
-
   services = {
-    # Disable GNOME power profiles to avoid conflicts with TLP
     power-profiles-daemon.enable = false;
-
     tlp = {
       enable = true;
       settings = {
-        # Removed STOP_CHARGE_THRESH_BAT0 to avoid conflict with 
-        # the custom services.battery-limiter module.
-
-        # Apple Silicon (ARM) handles scaling differently than Intel.
-        # 'schedutil' is often preferred for responsiveness on M-series chips.
         CPU_SCALING_GOVERNOR_ON_AC = "schedutil";
         CPU_SCALING_GOVERNOR_ON_BAT = "schedutil";
-
-        # Keeping these as defaults, though effect varies by kernel support
         CPU_BOOST_ON_AC = 1;
         CPU_BOOST_ON_BAT = 0;
       };
@@ -242,24 +220,13 @@
   };
 
   # -------------------------------------------------------------------
-  # ⚙️ BLUETOOTH CONFIGURATION (Corrected)
+  # ⚙️ BLUETOOTH
   # -------------------------------------------------------------------
   hardware.bluetooth.enable = true;
-
   hardware.bluetooth.settings = {
-    General = {
-      Experimental = "true";
-      AutoEnable = "true";
-      # FastConnectable improves reconnection reliability and audio handshakes
-      FastConnectable = "true";
-    };
-    Policy = {
-      AutoEnable = "true";
-      AutoConnect = "true";
-    };
+    General = { Experimental = "true"; AutoEnable = "true"; FastConnectable = "true"; };
+    Policy = { AutoEnable = "true"; AutoConnect = "true"; };
   };
-
-  # Enable the Blueman applet
   services.blueman.enable = true;
 
   # -------------------------------------------------------------------
@@ -273,7 +240,7 @@
   };
 
   # -------------------------------------------------------------------
-  # 🛠️ SYSTEM-WIDE PACKAGES & SETTINGS
+  # 🛠️ SYSTEM-WIDE PACKAGES
   # -------------------------------------------------------------------
   environment.systemPackages = with pkgs; [
     git
@@ -289,7 +256,7 @@
     postgresql
     brightnessctl
     firefox-nightly-bin
-    libnotify # Added libnotify to system packages for earlyoom user notifications
+    libnotify
   ];
   programs.zsh.enable = true;
   programs.mtr.enable = true;

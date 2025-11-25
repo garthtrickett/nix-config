@@ -32,6 +32,11 @@
   # -------------------------------------------------------------------
   #  TERMINAL MULTIPLEXER (ZELLIJ)
   # -------------------------------------------------------------------
+
+  # FIX: Force overwrite to avoid "clobbered" backup errors caused by 
+  # the mutable config handling in theme.nix
+  xdg.configFile."zellij/config.kdl".force = true;
+
   programs.zellij = {
     enable = true;
     settings = {

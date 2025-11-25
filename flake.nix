@@ -72,6 +72,11 @@
           {
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.useGlobalPkgs = true;
+
+            # CRITICAL FIX: Allows Home Manager to backup existing mutable files 
+            # (like our GTK settings) instead of failing with a "clobbered" error.
+            home-manager.backupFileExtension = "hm-backup";
+
             home-manager.users.garth = {
               imports = [
                 ./home-garth.nix

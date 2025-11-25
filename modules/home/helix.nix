@@ -26,6 +26,11 @@
   # -------------------------------------------------------------------
   # 📝 HELIX CONFIGURATION
   # -------------------------------------------------------------------
+
+  # FIX: Force overwrite to avoid "clobbered" backup errors caused by 
+  # the mutable config handling in theme.nix
+  xdg.configFile."helix/config.toml".force = true;
+
   # NOTE: 'theme' is commented out here because the toggle-theme script 
   # handles it in the mutable config file managed by theme.nix
   programs.helix = {

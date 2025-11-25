@@ -7,27 +7,16 @@
   # -------------------------------------------------------------------
   catppuccin = {
     enable = true;
-    # We default to macchiato, but the toggle script will override specific apps
     flavor = "macchiato";
-
-    # Disable module management for apps we want to toggle dynamically.
-    # We will manage their config files manually via the toggle script.
     helix.enable = false;
     alacritty.enable = false;
-
-    # DISABLE WAYBAR HERE so it doesn't inject the read-only css import
     waybar.enable = false;
-
-    # ENABLE ZELLIJ HERE so the theme definitions (hex codes) are generated.
-    # Our activation script below will still make the file writable.
     zellij.enable = true;
   };
 
   # -------------------------------------------------------------------
   # 🎭 GTK & CURSOR THEME
   # -------------------------------------------------------------------
-  # We must enable GTK so the theme packages are linked and available for Firefox
-  # We use lib.mkForce on packages to override Catppuccin module defaults
   gtk = {
     enable = true;
     theme = {
@@ -46,12 +35,17 @@
     };
     iconTheme = {
       name = "Papirus-Dark";
-      # Force usage of standard Papirus instead of Catppuccin's fork to resolve conflict
       package = lib.mkForce pkgs.papirus-icon-theme;
     };
   };
 
-  # Ensure the Latte theme is ALSO available for the toggle script to switch to
+  # FIX: Force overwrite GTK settings to avoid "clobbered" backup errors.
+  # This tells Home Manager to replace the file even if it exists, skipping the
+  # backup step that is currently failing.
+  xdg.configFile."gtk-3.0/settings.ini".force = true;
+  xdg.configFile."gtk-4.0/settings.ini".force = true;
+
+  # Install the Latte variant so we can switch to it
   home.packages = [
     pkgs.toggle-theme
     (pkgs.catppuccin-gtk.override {
@@ -63,72 +57,70 @@
   ];
 
   # -------------------------------------------------------------------
-  # ✨ MUTABLE CONFIGS FOR RUNTIME TOGGLING
+  # ✨ MUTABLE CONFIGS
   # -------------------------------------------------------------------
-  # NixOS normally makes ~/.config files read-only symlinks.
-  # To allow 'toggle-theme' to edit them, we must break the symlinks 
-  # and copy the files to the user directory during activation.
   home.activation.makeConfigsWritable = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    
-    # 1. Helper function
     make_writable() {
       local file="$1"
       local source="$2"
-      
-      # Only act if the target is a symlink (meaning it's managed by Nix)
-      # or if it doesn't exist yet.
       if [ -L "$file" ] || [ ! -f "$file" ]; then
-        echo "Making $file writable for theme toggling..."
         mkdir -p "$(dirname "$file")"
-        
-        # If source exists (from Nix store), copy it. Otherwise create empty/default.
         if [ -f "$source" ]; then
           cp --remove-destination "$(readlink -f "$source" || echo "$source")" "$file"
         else
-          # Create default if needed
           touch "$file"
         fi
         chmod +w "$file"
       fi
     }
 
-    # 2. Make Waybar CSS writable (so we can import theme.css)
+    # Waybar
     mkdir -p ${config.xdg.configHome}/waybar
     if [ ! -f ${config.xdg.configHome}/waybar/theme.css ]; then
-       # Default to Dark on first run
        echo "@define-color base #24273a;" > ${config.xdg.configHome}/waybar/theme.css
     fi
 
-    # 3. Make Hyprland Theme config writable
+    # Hyprland
     mkdir -p ${config.xdg.configHome}/hypr
     if [ ! -f ${config.xdg.configHome}/hypr/theme.conf ]; then
        echo "" > ${config.xdg.configHome}/hypr/theme.conf
     fi
 
-    # 4. Helix Config
+    # Helix & Zellij
     HX_PATH="${config.xdg.configHome}/helix/config.toml"
     if [ -L "$HX_PATH" ]; then
        cp --remove-destination "$(readlink "$HX_PATH")" "$HX_PATH"
        chmod +w "$HX_PATH"
     fi
-
-    # 5. Zellij Config
-    # We copy this even if Zellij module is enabled, to allow mutability
     ZJ_PATH="${config.xdg.configHome}/zellij/config.kdl"
     if [ -L "$ZJ_PATH" ]; then
        cp --remove-destination "$(readlink "$ZJ_PATH")" "$ZJ_PATH"
        chmod +w "$ZJ_PATH"
     fi
 
-    # 6. Alacritty Theme File
+    # Alacritty
     mkdir -p ${config.xdg.configHome}/alacritty
     if [ ! -f ${config.xdg.configHome}/alacritty/theme.toml ]; then
        touch ${config.xdg.configHome}/alacritty/theme.toml
     fi
+
+    # GTK Settings (CRITICAL for Firefox & Apps)
+    # We resolve the symlink to a real file so `sed -i` in toggle-theme works 
+    # without breaking the symlink chain or hitting permission errors.
+    GTK3_SETTINGS="${config.xdg.configHome}/gtk-3.0/settings.ini"
+    if [ -L "$GTK3_SETTINGS" ]; then
+       cp --remove-destination "$(readlink "$GTK3_SETTINGS")" "$GTK3_SETTINGS"
+       chmod +w "$GTK3_SETTINGS"
+    fi
+    GTK4_SETTINGS="${config.xdg.configHome}/gtk-4.0/settings.ini"
+    if [ -L "$GTK4_SETTINGS" ]; then
+       cp --remove-destination "$(readlink "$GTK4_SETTINGS")" "$GTK4_SETTINGS"
+       chmod +w "$GTK4_SETTINGS"
+    fi
   '';
 
   # -------------------------------------------------------------------
-  # ✨ XSESSION & SCALING
+  # ✨ SESSION VARIABLES
   # -------------------------------------------------------------------
   xsession.enable = true;
   xresources.properties = {
@@ -136,5 +128,11 @@
     "Xcursor.size" = 48;
   };
 
-  home.sessionVariables = { GDK_SCALE = "2"; QT_SCALE_FACTOR = "2"; };
+  home.sessionVariables = {
+    GDK_SCALE = "2";
+    QT_SCALE_FACTOR = "2";
+    # CRITICAL: We must ensure GTK_THEME is NOT set, otherwise Firefox 
+    # will permanently lock to the initial theme and ignore our toggle script.
+    GTK_THEME = "";
+  };
 }
