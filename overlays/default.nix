@@ -7,4 +7,5 @@ final: prev:
 (import ./theme.nix final prev) //
 (import ./battery.nix final prev) //
 (import ./tailscale.nix final prev) //
-(import ./bluetooth.nix final prev)
+(import ./bluetooth.nix final prev) //
+(import ./mesa-pin.nix final prev)

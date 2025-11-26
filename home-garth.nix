@@ -69,8 +69,6 @@
   # -------------------------------------------------------------------
   programs.ssh = {
     enable = true;
-    # Explicitly set this to avoid warnings about future defaults
-    enableDefaultConfig = true;
 
     matchBlocks = {
       "*" = {
@@ -147,6 +145,9 @@
 
         # Optional: General Wayland smoothness tweaks
         "gfx.webrender.all" = true;
+        
+        # Allow userChrome.css to be loaded
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
       };
     };
   };

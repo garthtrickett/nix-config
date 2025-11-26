@@ -40,8 +40,37 @@ final: prev:
         ALACRITTY_THEME_FILE="$XDG_CONFIG_HOME/alacritty/theme.toml"
         GTK3_CONFIG="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
         GTK4_CONFIG="$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+        FIREFOX_THEME_FILE="$XDG_CONFIG_HOME/firefox/theme.css"
 
         # --- HELPER FUNCTIONS ---
+
+        setup_firefox_userchrome() {
+          echo "Setting up Firefox userChrome.css..."
+          local profiles_ini="$HOME/.mozilla/firefox/profiles.ini"
+          if [ ! -f "$profiles_ini" ]; then
+            echo "WARNING: profiles.ini not found. Cannot set up Firefox userChrome.css."
+            return
+          fi
+          
+          local profile_path=$(awk 'BEGIN { RS = "" } /Default=1/ { for (i = 1; i <= NF; i++) { if ($i ~ /^Path=/) { split($i, a, "="); print a[2]; exit; } } }' "$profiles_ini")
+          
+          if [ -z "$profile_path" ]; then
+            echo "WARNING: Default profile not found in profiles.ini. Cannot set up Firefox userChrome.css."
+            return
+          fi
+          
+          local profile_dir="$HOME/.mozilla/firefox/$profile_path"
+          local chrome_dir="$profile_dir/chrome"
+
+          mkdir -p "$chrome_dir"
+          
+          if [ ! -f "$chrome_dir/userChrome.css" ]; then
+            cat > "$chrome_dir/userChrome.css" <<EOF
+    /* Import this theme's colors */
+    @import url("file://$FIREFOX_THEME_FILE");
+    EOF
+          fi
+        }
     
         find_theme_name() {
           local keyword="$1"
@@ -109,6 +138,7 @@ final: prev:
 
         # --- MAIN ---
 
+        setup_firefox_userchrome
         if [ ! -f "$STATE_FILE" ]; then echo "dark" > "$STATE_FILE"; fi
         CURRENT_MODE=$(cat "$STATE_FILE")
         echo "Current mode: $CURRENT_MODE"
@@ -122,6 +152,19 @@ final: prev:
           update_gsettings 'prefer-light' "$THEME_NAME"
           update_gtk_file "$GTK3_CONFIG" "0" "$THEME_NAME"
           update_gtk_file "$GTK4_CONFIG" "0" "$THEME_NAME"
+
+          # Firefox (Latte)
+          cat > "$FIREFOX_THEME_FILE" <<EOF
+    :root {
+      --rosewater: #dc8a78; --flamingo: #dd7878; --pink: #ea76cb; --mauve: #8839ef;
+      --red: #d20f39; --maroon: #e64553; --peach: #fe640b; --yellow: #df8e1d;
+      --green: #40a02b; --teal: #179299; --sky: #04a5e5; --sapphire: #209fb5;
+      --blue: #1e66f5; --lavender: #7287fd; --text: #4c4f69; --subtext1: #5c5f77;
+      --subtext0: #6c6f85; --overlay2: #7c7f93; --overlay1: #8c8fa1; --overlay0: #9ca0b0;
+      --surface2: #acb0be; --surface1: #bcc0cc; --surface0: #ccd0da; --crust: #dce0e8;
+      --mantle: #e6e9ef; --base: #eff1f5;
+    }
+    EOF
 
           # Waybar (Latte)
           cat > "$WB_THEME_FILE" <<EOF
@@ -229,6 +272,19 @@ final: prev:
           update_gsettings 'prefer-dark' "$THEME_NAME"
           update_gtk_file "$GTK3_CONFIG" "1" "$THEME_NAME"
           update_gtk_file "$GTK4_CONFIG" "1" "$THEME_NAME"
+
+          # Firefox (Macchiato)
+          cat > "$FIREFOX_THEME_FILE" <<EOF
+    :root {
+      --rosewater: #f5e0dc; --flamingo: #f2cdcd; --pink: #f5c2e7; --mauve: #cba6f7;
+      --red: #f38ba8; --maroon: #eba0ac; --peach: #fab387; --yellow: #f9e2af;
+      --green: #a6e3a1; --teal: #94e2d5; --sky: #89dceb; --sapphire: #74c7ec;
+      --blue: #89b4fa; --lavender: #b4befe; --text: #cdd6f4; --subtext1: #bac2de;
+      --subtext0: #a6adc8; --overlay2: #9399b2; --overlay1: #7f849c; --overlay0: #6c7086;
+      --surface2: #585b70; --surface1: #45475a; --surface0: #313244; --crust: #1e1e2e;
+      --mantle: #181825; --base: #1e1e2e;
+    }
+    EOF
 
           # Waybar (Macchiato)
           cat > "$WB_THEME_FILE" <<EOF
