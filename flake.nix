@@ -35,13 +35,19 @@
     zjstatus = {
       url = "github:dj95/zjstatus";
     };
+
+    antigravity-nix = {
+      url = "github:jacopone/antigravity-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, firefox-nightly, sops-nix, zjstatus, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, firefox-nightly, sops-nix, zjstatus, antigravity-nix, ... }@inputs:
     let
       system = "aarch64-linux";
       pkgs = import nixpkgs {
         inherit system;
+        config.allowUnfree = true;
         overlays = with inputs; [
           firefox-nightly.overlays.default
           (final: prev: {
@@ -74,6 +80,11 @@
           ./configuration.nix
 
           {
+            environment.systemPackages = with pkgs; [
+              antigravity-nix.packages.${pkgs.system}.default
+              chromium
+            ];
+
             home-manager.extraSpecialArgs = { inherit inputs; };
             home-manager.useGlobalPkgs = true;
 
