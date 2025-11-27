@@ -109,5 +109,12 @@
       };
 
       homeManagerModules.home-garth-test = import (inputs.self + "/home-garth-test.nix") { inherit pkgs inputs; lib = inputs.nixpkgs.lib; };
+
+      devShells.aarch64-linux.default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          go
+          gopls
+        ];
+      };
     };
 }

@@ -33,3 +33,30 @@ firmware/kernelcache.release.mac13j
 # want to ignore the private key file.
 # /secrets.age
 # id_ed25519.age
+#
+42069-1418
+
+--- g-tui-go Project ---
+Binaries
+
+g-tui-go/g-tui-go
+g-tui-go/.exe
+g-tui-go/.dll
+g-tui-go/.so
+g-tui-go/.dylib
+Build / Distribution folders
+
+g-tui-go/bin/
+g-tui-go/dist/
+Test binaries & Coverage
+
+g-tui-go/.test
+g-tui-go/.out
+Local development config
+
+g-tui-go/.env
+Go workspace files
+
+g-tui-go/go.work
+g-tui-go/go.work.sum
+g-tui-go/vendor/
