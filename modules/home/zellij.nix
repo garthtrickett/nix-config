@@ -47,6 +47,26 @@
       copy_on_select = true;
       default_layout = "status-bar";
       show_startup_tips = false;
+
+      # DEFINE CUSTOM HIGH-CONTRAST THEME FOR LIGHT MODE
+      themes = {
+        latte-contrast = {
+          bg = "#eff1f5";
+          fg = "#4c4f69";
+          red = "#d20f39";
+          # Darkened Green (Standard is #40a02b)
+          green = "#358523";
+          blue = "#1e66f5";
+          # Darkened Yellow/Orange (Standard is #df8e1d)
+          yellow = "#8F5E13";
+          magenta = "#8839ef";
+          orange = "#fe640b";
+          cyan = "#04a5e5";
+          # Darkened Black/Grey for text visibility (Standard is #acb0be)
+          black = "#5c5f77";
+          white = "#4c4f69";
+        };
+      };
     };
     extraConfig = ''
       unbind "Alt h" "Alt l" "Alt t" "Alt e"

@@ -50,5 +50,7 @@
     # and for Firefox to read the theme changes via DBus.
     pkgs.gsettings-desktop-schemas
     pkgs.gtk3
+    # ADDED: Node.js is strictly required for 'npx' based MCP servers
+    pkgs.nodejs
   ];
 }
