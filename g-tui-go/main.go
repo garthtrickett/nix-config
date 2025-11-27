@@ -49,7 +49,7 @@ type model struct {
 	list          list.Model
 	textInput     textinput.Model
 	spinner       spinner.Model
-	apiKey        string
+	client        APIClient
 	selectedModel string
 	messages      []string
 	loading       bool
@@ -93,27 +93,21 @@ func initialModel() model {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
-	initialState := showList
-	selectedModel := ""
-
-	if apiKey != "" {
-		selectedModel = "gemini-3-pro-preview"
-		initialState = showChat
-	}
+	client := NewLiveAPIClient(apiKey)
 
 	return model{
-		state:     initialState,
+		state:     showList,
 		list:      l,
 		textInput: ti,
 		spinner:   s,
-		apiKey:    apiKey,
-		selectedModel: selectedModel,
+		client:    client,
+		selectedModel: "",
 		loading:   false,
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(tea.EnterAltScreen, fetchModels(m.apiKey))
+	return tea.Batch(tea.EnterAltScreen, fetchModels(m.client))
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -138,7 +132,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else { // In chat mode, send the message
 				m.messages = append(m.messages, "You: "+m.textInput.Value())
 				m.loading = true
-				cmd = tea.Batch(m.spinner.Tick, makeApiCall(m.apiKey, m.selectedModel, m.textInput.Value()))
+				cmd = tea.Batch(m.spinner.Tick, makeApiCall(m.client, m.selectedModel, m.textInput.Value()))
 			}
 		}
 
@@ -182,7 +176,7 @@ func (m model) View() string {
 	if m.err != nil {
 		return fmt.Sprintf("\nWe had some trouble: %v\n\n", m.err)
 	}
-	if m.apiKey == "" {
+	if m.client.(*LiveAPIClient).apiKey == "" {
 		return "API key not found. Please set the GEMINI_API_KEY environment variable."
 	}
 
@@ -207,6 +201,115 @@ func (m model) View() string {
 	return appStyle.Render(ss)
 }
 
+// --- api client ---
+type APIClient interface {
+	FetchModels() ([]list.Item, error)
+	GenerateContent(model, prompt string) (string, error)
+}
+
+type LiveAPIClient struct {
+	apiKey string
+}
+
+func NewLiveAPIClient(apiKey string) *LiveAPIClient {
+	return &LiveAPIClient{apiKey: apiKey}
+}
+
+func (c *LiveAPIClient) FetchModels() ([]list.Item, error) {
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", c.apiKey)
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var response struct {
+		Models []struct {
+			Name                       string   `json:"name"`
+			SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
+		} `json:"models"`
+	}
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, err
+	}
+
+	items := []list.Item{}
+	for _, model := range response.Models {
+		for _, method := range model.SupportedGenerationMethods {
+			if method == "generateContent" {
+				items = append(items, item{title: strings.TrimPrefix(model.Name, "models/")})
+			}
+		}
+	}
+	return items, nil
+}
+
+func (c *LiveAPIClient) GenerateContent(model, prompt string) (string, error) {
+	logToFile("--- New API Call ---")
+	logToFile(fmt.Sprintf("Model: %s", model))
+	logToFile(fmt.Sprintf("Prompt: %s", prompt))
+
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, c.apiKey)
+	logToFile(fmt.Sprintf("URL: %s", url))
+
+	reqBody := apiRequest{
+		Contents: []struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		}{
+			{
+				Parts: []struct {
+					Text string `json:"text"`
+				}{
+					{Text: prompt},
+				},
+			},
+		},
+	}
+
+	reqBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		logToFile(fmt.Sprintf("ERROR marshalling request: %v", err))
+		return "", err
+	}
+	logToFile(fmt.Sprintf("Request Body: %s", string(reqBytes)))
+
+	res, err := http.Post(url, "application/json", bytes.NewBuffer(reqBytes))
+	if err != nil {
+		logToFile(fmt.Sprintf("ERROR making POST request: %v", err))
+		return "", err
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logToFile(fmt.Sprintf("ERROR reading response body: %v", err))
+		return "", err
+	}
+	logToFile(fmt.Sprintf("Response Body: %s", string(body)))
+
+	var response apiResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		logToFile(fmt.Sprintf("ERROR unmarshalling response: %v", err))
+		return "", err
+	}
+
+	if len(response.Candidates) > 0 && len(response.Candidates[0].Content.Parts) > 0 {
+		responseText := response.Candidates[0].Content.Parts[0].Text
+		logToFile(fmt.Sprintf("Success. Response text: %s", responseText))
+		return responseText, nil
+	}
+
+	logToFile("No response from model.")
+	return "No response from model.", nil
+}
+
 // --- api call types ---
 type apiRequest struct {
 	Contents []struct {
@@ -226,102 +329,23 @@ type apiResponse struct {
 	} `json:"candidates"`
 }
 
-func fetchModels(apiKey string) tea.Cmd {
+func fetchModels(client APIClient) tea.Cmd {
 	return func() tea.Msg {
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", apiKey)
-		res, err := http.Get(url)
+		items, err := client.FetchModels()
 		if err != nil {
 			return errMsg{err}
-		}
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return errMsg{err}
-		}
-
-		var response struct {
-			Models []struct {
-				Name                       string   `json:"name"`
-				SupportedGenerationMethods []string `json:"supportedGenerationMethods"`
-			} `json:"models"`
-		}
-		if err := json.Unmarshal(body, &response); err != nil {
-			return errMsg{err}
-		}
-
-		items := []list.Item{}
-		for _, model := range response.Models {
-			for _, method := range model.SupportedGenerationMethods {
-				if method == "generateContent" {
-					items = append(items, item{title: strings.TrimPrefix(model.Name, "models/")})
-				}
-			}
 		}
 		return fetchedModelsMsg(items)
 	}
 }
 
-func makeApiCall(apiKey, model, prompt string) tea.Cmd {
+func makeApiCall(client APIClient, model, prompt string) tea.Cmd {
 	return func() tea.Msg {
-		logToFile("--- New API Call ---")
-		logToFile(fmt.Sprintf("Model: %s", model))
-		logToFile(fmt.Sprintf("Prompt: %s", prompt))
-
-		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, apiKey)
-		logToFile(fmt.Sprintf("URL: %s", url))
-
-		reqBody := apiRequest{
-			Contents: []struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			}{
-				{
-					Parts: []struct {
-						Text string `json:"text"`
-					}{
-						{Text: prompt},
-					},
-				},
-			},
-		}
-
-		reqBytes, err := json.Marshal(reqBody)
+		resp, err := client.GenerateContent(model, prompt)
 		if err != nil {
-			logToFile(fmt.Sprintf("ERROR marshalling request: %v", err))
 			return errMsg{err}
 		}
-		logToFile(fmt.Sprintf("Request Body: %s", string(reqBytes)))
-
-		res, err := http.Post(url, "application/json", bytes.NewBuffer(reqBytes))
-		if err != nil {
-			logToFile(fmt.Sprintf("ERROR making POST request: %v", err))
-			return errMsg{err}
-		}
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			logToFile(fmt.Sprintf("ERROR reading response body: %v", err))
-			return errMsg{err}
-		}
-		logToFile(fmt.Sprintf("Response Body: %s", string(body)))
-
-		var response apiResponse
-		if err := json.Unmarshal(body, &response); err != nil {
-			logToFile(fmt.Sprintf("ERROR unmarshalling response: %v", err))
-			return errMsg{err}
-		}
-
-		if len(response.Candidates) > 0 && len(response.Candidates[0].Content.Parts) > 0 {
-			responseText := response.Candidates[0].Content.Parts[0].Text
-			logToFile(fmt.Sprintf("Success. Response text: %s", responseText))
-			return apiResponseMsg(responseText)
-		}
-
-		logToFile("No response from model.")
-		return apiResponseMsg("No response from model.")
+		return apiResponseMsg(resp)
 	}
 }
 
