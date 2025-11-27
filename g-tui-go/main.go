@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -54,6 +54,7 @@ type model struct {
 	messages      []string
 	loading       bool
 	err           error
+	fileContent   string
 }
 
 func initialModel() model {
@@ -62,7 +63,7 @@ func initialModel() model {
 	if apiKey == "" {
 		tempDir := "/home/garth/.gemini/tmp/3ecdc925ecdb6b43e72d58ab048373ba41b82a51a9e0668f8dbca38696f65085"
 		keyFile := filepath.Join(tempDir, "gemini", "api-key")
-		content, err := ioutil.ReadFile(keyFile)
+		content, err := os.ReadFile(keyFile)
 		if err == nil {
 			apiKey = string(content)
 		}
@@ -72,7 +73,7 @@ func initialModel() model {
 		home, err := os.UserHomeDir()
 		if err == nil {
 			keyFile := filepath.Join(home, ".config", "gemini", "api-key")
-			content, err := ioutil.ReadFile(keyFile)
+			content, err := os.ReadFile(keyFile)
 			if err == nil {
 				apiKey = string(content)
 			}
@@ -103,6 +104,7 @@ func initialModel() model {
 		client:    client,
 		selectedModel: "gemini-3-pro-preview",
 		loading:   false,
+		fileContent:   "",
 	}
 }
 
@@ -130,9 +132,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			} else { // In chat mode, send the message
-				m.messages = append(m.messages, "You: "+m.textInput.Value())
+				userInput := m.textInput.Value()
+				if strings.HasPrefix(userInput, "/read ") {
+					filePath := strings.TrimSpace(strings.TrimPrefix(userInput, "/read "))
+					content, err := os.ReadFile(filePath)
+					if err != nil {
+						m.messages = append(m.messages, "Error reading file: "+err.Error())
+					} else {
+						m.fileContent = string(content)
+						m.messages = append(m.messages, "Loaded content from "+filePath+". It will be included in your next message.")
+					}
+					m.textInput.Reset()
+					return m, nil
+				}
+
+				m.messages = append(m.messages, "You: "+userInput)
 				m.loading = true
-				cmd = tea.Batch(m.spinner.Tick, makeApiCall(m.client, m.selectedModel, m.textInput.Value()))
+
+				prompt := userInput
+				if m.fileContent != "" {
+					prompt = "File Content:\n" + m.fileContent + "\n\n---\n\nUser Prompt:\n" + prompt
+					m.fileContent = "" // Clear after use
+				}
+
+				cmd = tea.Batch(m.spinner.Tick, makeApiCall(m.client, m.selectedModel, prompt))
 			}
 		}
 
@@ -223,7 +246,7 @@ func (c *LiveAPIClient) FetchModels() ([]list.Item, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +310,7 @@ func (c *LiveAPIClient) GenerateContent(model, prompt string) (string, error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		logToFile(fmt.Sprintf("ERROR reading response body: %v", err))
 		return "", err
