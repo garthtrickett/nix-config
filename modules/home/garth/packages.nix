@@ -49,11 +49,14 @@
     pkgs.gsettings-desktop-schemas
     pkgs.gtk3
     pkgs.nodejs
-    # TUI DEPENDENCIES
+
+    # TUI UTILITIES (Kept here as they are general purpose)
     pkgs.gum
     pkgs.jq
+    pkgs.curl
+    # Note: google-cloud-sdk and glow moved to gemini.nix
 
-    # --- MCP MANAGER TUI (ROBUST VERSION) ---
+    # --- MCP MANAGER TUI ---
     (pkgs.writeShellScriptBin "mcp-manager" ''
       #!${pkgs.bash}/bin/bash
       set -e
@@ -86,7 +89,7 @@
 
       echo "Building configuration..."
 
-      # 4. JSON Reconstruction (Write to TEMP first)
+      # 4. JSON Reconstruction
       JSON_ARRAY=$(echo "$CHOICES" | jq -R . | jq -s .)
 
       jq -n --slurpfile pool "$POOL_FILE" --argjson selected "$JSON_ARRAY" '
@@ -95,9 +98,7 @@
         }
       ' > "$TEMP_FILE"
 
-      # 5. ATOMIC REPLACE (Crucial Fix)
-      # We use 'mv -f' to forcefully overwrite LIVE_FILE. 
-      # This breaks any existing symlinks created by Nix/Sops and ensures the file is writable.
+      # 5. ATOMIC REPLACE
       mv -f "$TEMP_FILE" "$LIVE_FILE"
       chmod 644 "$LIVE_FILE"
 

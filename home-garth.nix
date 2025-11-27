@@ -20,5 +20,8 @@
     ./modules/home/garth/starship.nix
     ./modules/home/garth/packages.nix
     ./modules/home/garth/caddy.nix
+
+    # New separate file for Gemini TUI
+    ./modules/home/garth/g-tui.nix
   ];
 }
