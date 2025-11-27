@@ -22,6 +22,5 @@
     ./modules/home/garth/caddy.nix
 
     # New separate file for Gemini TUI
-    ./modules/home/garth/g-tui.nix
   ];
 }
