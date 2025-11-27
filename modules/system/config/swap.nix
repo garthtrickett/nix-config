@@ -3,7 +3,7 @@
 
 {
   swapDevices = [
-    { device = "/swap/swapfile"; size = 4096; } # 4GB Swap File
+    { device = "/swap/swapfile"; size = 8192; } # 4GB Swap File
   ];
   systemd.tmpfiles.rules = [
     "d /swap 0755 root root"

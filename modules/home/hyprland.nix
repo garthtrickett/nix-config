@@ -2,27 +2,33 @@
 { config, ... }:
 
 {
-  # -------------------------------------------------------------------
-  # 🖥️ HYPRLAND WINDOW MANAGER
-  # -------------------------------------------------------------------
   wayland.windowManager.hyprland = {
     enable = true;
     settings = {
       monitor = [ ",preferred,auto,2" ];
       "exec-once" = [
         "dunst"
-        # Ensure the theme is applied on startup (if file exists)
-        # This runs the script to set initial gtk/hypr settings based on state file
         "toggle-theme"
       ];
-
-      # Source the dynamic theme file (created by toggle-theme script)
       source = [ "~/.config/hypr/theme.conf" ];
-
       env = [ "YDOTOOL_SOCKET,/run/ydotoold.sock" ];
+
+      # WINDOW RULES FOR THE TUI
+      # This ensures the MCP Manager opens as a nice floating window in the center
+      windowrulev2 = [
+        "float, title:^(MCP Manager)$"
+        "size 600 500, title:^(MCP Manager)$"
+        "center, title:^(MCP Manager)$"
+      ];
+
       bind = [
         "SUPER, T, exec, alacritty -e zellij"
-        "SUPER_SHIFT, T, exec, toggle-theme" # <--- THEME TOGGLE BIND
+        "SUPER_SHIFT, T, exec, toggle-theme"
+
+        # 🔥 THE NEW KEYBIND
+        # Launches Alacritty with a specific title so the window rules apply, running mcp-manager
+        "SUPER_SHIFT, M, exec, alacritty -t 'MCP Manager' -e mcp-manager"
+
         "SUPER_SHIFT, O, exec, fuzzel"
         "SUPER_SHIFT,S,exec,hyprshot --mode region --output ''$HOME/Screenshots/$(date +''%Y-%m-%d_%H-%M-%S'').png'' --copy"
         "SUPER, E, exec, nemo"
@@ -56,7 +62,6 @@
         "SUPER_SHIFT, K, exec, toggle-keyboard-backlight"
         "SUPER_SHIFT, R, exec, pkill -SIGINT wf-recorder"
         "SUPER, B, exec, toggle-bt-headphones"
-
       ];
       input = {
         kb_layout = "us";
@@ -71,7 +76,6 @@
         "gaps_in" = 5;
         "gaps_out" = 10;
         border_size = 2;
-        # Default fallback colors if source file missing
         "col.active_border" = "rgba(33ccffee) rgba(00ff99ee) 45deg";
         "col.inactive_border" = "rgba(595959aa)";
         layout = "dwindle";
