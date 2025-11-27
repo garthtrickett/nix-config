@@ -11,7 +11,7 @@ let
           "args": [
             "-y",
             "@modelcontextprotocol/server-filesystem",
-            "${config.home.homeDirectory}/Desktop"
+            "${config.home.homeDirectory}/"
           ]
         },
         "postgres": {
