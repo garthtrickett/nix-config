@@ -40,12 +40,12 @@ func TestInitialModel(t *testing.T) {
 	t.Run("No API Key", func(t *testing.T) {
 		model := initialModel()
 
-		if model.state != showList {
-			t.Errorf("Expected state to be showList, but got %v", model.state)
+		if model.state != showChat {
+			t.Errorf("Expected state to be showChat, but got %v", model.state)
 		}
 
-		if model.selectedModel != "" {
-			t.Errorf("Expected selectedModel to be empty, but got %s", model.selectedModel)
+		if model.selectedModel != "gemini-3-pro-preview" {
+			t.Errorf("Expected selectedModel to be \"gemini-3-pro-preview\", but got %s", model.selectedModel)
 		}
 	})
 
@@ -56,12 +56,12 @@ func TestInitialModel(t *testing.T) {
 	t.Run("API Key is set", func(t *testing.T) {
 		model := initialModel()
 
-		if model.state != showList {
-			t.Errorf("Expected state to be showList, but got %v", model.state)
+		if model.state != showChat {
+			t.Errorf("Expected state to be showChat, but got %v", model.state)
 		}
 
-		if model.selectedModel != "" {
-			t.Errorf("Expected selectedModel to be empty, but got %s", model.selectedModel)
+		if model.selectedModel != "gemini-3-pro-preview" {
+			t.Errorf("Expected selectedModel to be \"gemini-3-pro-preview\", but got %s", model.selectedModel)
 		}
 	})
 
@@ -136,19 +136,44 @@ func TestUpdate(t *testing.T) {
 		}
 	})
 
-	t.Run("KeyEnter in showList", func(t *testing.T) {
-		m := initialModel()
-		m.list.SetItems([]list.Item{item{title: "selected-model"}})
-		msg := tea.KeyMsg{Type: tea.KeyEnter}
+		t.Run("KeyEnter in showChat", func(t *testing.T) {
+			m := initialModel()
+			m.textInput.SetValue("Hello Gemini")
+			client := &MockAPIClient{
+				GenerateContentFunc: func(model, prompt string) (string, error) {
+					return "response from model", nil
+				},
+			}
+			m.client = client
+			msg := tea.KeyMsg{Type: tea.KeyEnter}
 
-		newModel, _ := m.Update(msg)
-		updatedModel := newModel.(model)
+			newModel, _ := m.Update(msg)
+			updatedModel := newModel.(model)
 
-		if updatedModel.state != showChat {
-			t.Errorf("Expected state to be showChat, but got %v", updatedModel.state)
-		}
-		if updatedModel.selectedModel != "selected-model" {
-			t.Errorf("Expected selectedModel to be 'selected-model', but got '%s'", updatedModel.selectedModel)
-		}
-	})
-}
+			if !updatedModel.loading {
+				t.Errorf("Expected loading to be true after sending message")
+			}
+			if len(updatedModel.messages) != 1 {
+				t.Errorf("Expected 1 message after sending, got %d", len(updatedModel.messages))
+			}
+			if updatedModel.messages[0] != "You: Hello Gemini" {
+				t.Errorf("Expected message to be 'You: Hello Gemini', got '%s'", updatedModel.messages[0])
+			}
+
+			// Simulate API response
+			apiMsg := apiResponseMsg("response from model")
+
+			finalModelRaw, _ := updatedModel.Update(apiMsg)
+			finalModel := finalModelRaw.(model)
+
+			if finalModel.loading {
+				t.Errorf("Expected loading to be false after API response")
+			}
+			if len(finalModel.messages) != 2 {
+				t.Errorf("Expected 2 messages after API response, got %d", len(finalModel.messages))
+			}
+			if finalModel.messages[1] != "Gemini: response from model" {
+				t.Errorf("Expected response message, got %s", finalModel.messages[1])
+			}
+		})
+	}

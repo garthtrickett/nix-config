@@ -96,12 +96,12 @@ func initialModel() model {
 	client := NewLiveAPIClient(apiKey)
 
 	return model{
-		state:     showList,
+		state:     showChat,
 		list:      l,
 		textInput: ti,
 		spinner:   s,
 		client:    client,
-		selectedModel: "",
+		selectedModel: "gemini-3-pro-preview",
 		loading:   false,
 	}
 }
