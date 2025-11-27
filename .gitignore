@@ -60,3 +60,5 @@ Go workspace files
 g-tui-go/go.work
 g-tui-go/go.work.sum
 g-tui-go/vendor/
+
+g-tui-go/debug.log

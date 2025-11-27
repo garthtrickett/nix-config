@@ -93,12 +93,21 @@ func initialModel() model {
 	s.Spinner = spinner.Dot
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
+	initialState := showList
+	selectedModel := ""
+
+	if apiKey != "" {
+		selectedModel = "gemini-3-pro-preview"
+		initialState = showChat
+	}
+
 	return model{
-		state:     showList,
+		state:     initialState,
 		list:      l,
 		textInput: ti,
 		spinner:   s,
 		apiKey:    apiKey,
+		selectedModel: selectedModel,
 		loading:   false,
 	}
 }
@@ -117,6 +126,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
+			logToFile("Ctrl-C pressed")
 			return m, tea.Quit
 		case tea.KeyEnter:
 			if m.state == showList {
