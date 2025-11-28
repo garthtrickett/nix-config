@@ -16,7 +16,6 @@
     ./modules/home/garth/git.nix
     ./modules/home/garth/firefox.nix
     ./modules/home/garth/zsh.nix
-    ./modules/home/garth/jujutsu.nix
     ./modules/home/garth/starship.nix
     ./modules/home/garth/packages.nix
     ./modules/home/garth/caddy.nix

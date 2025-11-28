@@ -36,12 +36,12 @@
       }
 
       # --- GIT ALIASES ---
-      alias gsync="git fetch origin && git rebase origin/main"
+      alias gsync="git fetch origin && git rebase origin/staging"
       alias gcom="git add . && git commit -m"
       alias gam="git add . && git commit --amend --no-edit"
-      alias gmain="git checkout main && git pull origin main"
+      alias gstage="git checkout staging && git pull origin staging"
       alias gclean="git fetch -p && git branch -vv | grep ': gone]' | awk '{print \$1}' | xargs git branch -D 2>/dev/null"
-      alias gnuke="git branch | grep -v 'main' | xargs git branch -D 2>/dev/null"
+      alias gnuke="git branch | grep -v 'staging' | xargs git branch -D 2>/dev/null"
 
       # --- GIT WORKFLOW FUNCTIONS ---
       function gstart() {
