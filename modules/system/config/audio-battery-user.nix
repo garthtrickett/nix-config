@@ -1,4 +1,3 @@
-# modules/system/config/audio-battery-user.nix
 { config, pkgs, lib, ... }:
 
 {
@@ -44,12 +43,6 @@
   services.battery-limiter = {
     enable = true;
     threshold = 80;
-  };
-
-  users.groups.tailscaled = { };
-  users.users.tailscaled = {
-    group = "tailscaled";
-    isSystemUser = true;
   };
 
   users.users.garth = {

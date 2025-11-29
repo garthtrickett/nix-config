@@ -1,4 +1,3 @@
-# modules/system/config/system-packages.nix
 { config, pkgs, lib, ... }:
 
 {
@@ -8,14 +7,10 @@
     wget
     keyd
     toggle-battery-limit
-    tailscale
     jq
-    waybar-tailscale-status
-    tailscale-exit-node-selector
     envsubst
     postgresql
     brightnessctl
-    # firefox-nightly-bin  <-- REMOVED: Now managed by Home Manager
     libnotify
   ];
   programs.zsh.enable = true;

@@ -26,7 +26,6 @@
     ./modules/system/config/secrets.nix
     ./modules/system/config/power.nix
     ./modules/system/config/bluetooth.nix
-    ./modules/system/config/tailscale.nix
     ./modules/system/config/system-packages.nix
   ];
 }

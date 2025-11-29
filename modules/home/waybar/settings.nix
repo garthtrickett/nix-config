@@ -1,4 +1,3 @@
-# modules/home/waybar/settings.nix
 { pkgs, wifiStatusScript, ... }:
 
 {
@@ -7,8 +6,7 @@
     position = "top";
     modules-left = [ "hyprland/workspaces" "hyprland/window" ];
     modules-center = [ "cpu" "memory" "network#speed" ];
-    # Added "custom/mcp" to modules-right
-    modules-right = [ "custom/theme" "custom/mcp" "custom/tailscale" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
+    modules-right = [ "custom/theme" "custom/mcp" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
     "hyprland/workspaces" = {
       format = "{name}";
       format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -55,15 +53,6 @@
       return-type = "json";
       interval = 5;
     };
-    "custom/tailscale" = {
-      "format" = "{}";
-      "return-type" = "json";
-      "interval" = 10;
-      "exec" = "/run/current-system/sw/bin/waybar-tailscale-status";
-      "on-click" = "tailscale-exit-node-selector";
-    };
-    # --- NEW MCP MODULE ---
-    # Left click: Opens the TUI Manager
     "custom/mcp" = {
       "format" = "{}";
       "return-type" = "json";
