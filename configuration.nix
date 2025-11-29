@@ -1,9 +1,3 @@
-# /etc/nixos/configuration.nix
-
-############################################################
-##########          START configuration.nix          ##########
-############################################################
-
 { config, lib, pkgs, ... }:
 
 {
@@ -27,5 +21,6 @@
     ./modules/system/config/power.nix
     ./modules/system/config/bluetooth.nix
     ./modules/system/config/system-packages.nix
+    ./modules/system/config/nextdns.nix
   ];
 }

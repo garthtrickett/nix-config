@@ -4,7 +4,8 @@
 {
   hardware.asahi.peripheralFirmwareDirectory = inputs.self + "/firmware";
 
-  services.resolved.enable = true;
+  # CHANGED: Disabled to allow NextDNS to manage DNS
+  services.resolved.enable = false;
 
   # CRITICAL FIX 1: Prevent legacy dhcpcd from fighting NetworkManager
   networking.useDHCP = false;

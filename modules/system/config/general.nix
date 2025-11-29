@@ -11,10 +11,7 @@
     127.0.0.1 garth.localhost.com.au
   '';
 
-  # CRITICAL FIX 3: Commented out. 
-  # This allows the Hotspot's DHCP DNS to work, which allows Tailscale to connect.
-  # Once Tailscale connects, it will inject its own DNS preferences via systemd-resolved.
-  # networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  # CHANGED: Removed manual nameservers comment to ensure NextDNS module is the sole authority
 
   time.timeZone = "Australia/Sydney";
   i18n.defaultLocale = "en_US.UTF-8";
