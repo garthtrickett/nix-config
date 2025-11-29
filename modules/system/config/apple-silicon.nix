@@ -6,8 +6,16 @@
 
   services.resolved.enable = true;
 
-  # CRITICAL FIX 1: Prevent dhcpcd from fighting IWD
+  # CRITICAL FIX 1: Prevent legacy dhcpcd from fighting NetworkManager
   networking.useDHCP = false;
+
+  # --- NETWORK MANAGER CONFIGURATION ---
+  # This provides robust switching, hotspot support, and DNS management.
+  networking.networkmanager = {
+    enable = true;
+    # Tell NetworkManager to use iwd for the actual hardware communication
+    wifi.backend = "iwd";
+  };
 
   services.xserver.xkb.layout = "us";
   services.xserver.xkb.options = "eurosign:e";
@@ -18,15 +26,15 @@
     enable = true;
     settings = {
       General = {
-        EnableNetworkingConfiguration = true;
+        # CRITICAL FIX 2: Disable iwd's internal IP management.
+        # We want NetworkManager to handle DHCP and DNS, not iwd.
+        EnableNetworkingConfiguration = false;
         AddressRandomization = "disabled";
         RoamRetryInterval = 15;
       };
       Network = {
         EnableIPv6 = false;
-        NameResolvingService = "systemd";
-
-        # CRITICAL FIX 2: Removed RoutePriorityOffset to prioritize WiFi
+        # We remove NameResolvingService so iwd doesn't touch /etc/resolv.conf
       };
     };
   };

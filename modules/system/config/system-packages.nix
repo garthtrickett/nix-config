@@ -12,6 +12,9 @@
     postgresql
     brightnessctl
     libnotify
+    # Added nm-applet since we are switching to NetworkManager.
+    # This provides the system tray icon to select Wifi networks easily.
+    networkmanagerapplet
   ];
   programs.zsh.enable = true;
   programs.mtr.enable = true;
