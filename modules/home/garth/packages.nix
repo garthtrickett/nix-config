@@ -120,18 +120,28 @@
       echo "Select MCP Servers to Enable:"
       
       # 3. Render the TUI
+      # We disable exit-on-error temporarily to capture cancellation status
+      set +e
       CHOICES=$(echo "$ALL_SERVERS" | ${pkgs.gum}/bin/gum choose --no-limit --height=15 --selected="$SELECTED_CSV")
+      GUM_STATUS=$?
+      set -e
 
-      if [ -z "$CHOICES" ]; then
-        echo "No servers selected. Exiting without changes."
+      # If gum exits with non-zero (e.g. Ctrl+C/Esc), we cancel.
+      if [ $GUM_STATUS -ne 0 ]; then
+        echo "Cancelled. Exiting without changes."
         sleep 1
-        exit 1
+        exit 0
       fi
 
       echo "Building configuration..."
 
       # 4. JSON Reconstruction
-      JSON_ARRAY=$(echo "$CHOICES" | jq -R . | jq -s .)
+      # Handle empty selection explicitly (otherwise jq sees an empty string/array containing empty string)
+      if [ -z "$CHOICES" ]; then
+        JSON_ARRAY="[]"
+      else
+        JSON_ARRAY=$(echo "$CHOICES" | jq -R . | jq -s .)
+      fi
 
       jq -n --slurpfile pool "$POOL_FILE" --argjson selected "$JSON_ARRAY" '
         {

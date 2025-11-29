@@ -42,6 +42,10 @@
     settings = {
       # Default to macchiato, script will sed this line in the mutable copy
       theme = "catppuccin-macchiato";
+
+      # FIX: Start in "Locked" mode so keys (like Alt+F) go to the shell immediately
+      default_mode = "locked";
+
       pane_frames = false;
       default_shell = "zsh";
       copy_on_select = true;
@@ -69,7 +73,7 @@
       };
     };
     extraConfig = ''
-      unbind "Alt h" "Alt l" "Alt t" "Alt e"
+      unbind "Alt h" "Alt l" "Alt t" "Alt e" "Alt f"
       keybinds {
           locked {
               bind "Ctrl a" { SwitchToMode "Normal"; }
