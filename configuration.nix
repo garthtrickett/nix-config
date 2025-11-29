@@ -23,5 +23,8 @@
     ./modules/system/config/system-packages.nix
     ./modules/system/config/nextdns.nix
     ./modules/system/config/vpn.nix
+
+    # NEW: The Auto-Linker
+    ./modules/system/config/nextdns-link.nix
   ];
 }

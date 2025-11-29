@@ -64,7 +64,7 @@
       }
 
       function gpr() {
-        git push --force-with-lease -u origin HEAD
+        git push --force-with-lease --base -u origin HEAD
         gh pr create --web || true
       }
 
