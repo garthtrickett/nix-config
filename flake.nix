@@ -40,9 +40,16 @@
       url = "github:jacopone/antigravity-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # --- CHANGED INPUT HERE ---
+    # Pointing to local path. flake = false ensures it is treated as raw source code.
+    g-tui-go = {
+      url = "path:/home/garth/files/code/g-tui-go";
+      flake = false;
+    };
   };
 
-  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, firefox-nightly, sops-nix, zjstatus, antigravity-nix, ... }@inputs:
+  outputs = { self, nixpkgs, catppuccin, home-manager, apple-silicon, zen-browser, firefox-nightly, sops-nix, zjstatus, antigravity-nix, g-tui-go, ... }@inputs:
     let
       system = "aarch64-linux";
       pkgs = import nixpkgs {

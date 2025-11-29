@@ -5,19 +5,16 @@
   boot.kernelModules = [ "uinput" ];
   networking.hostName = "nixos";
 
-  # CRITICAL: Enables the dconf DBus service. 
   programs.dconf.enable = true;
 
   networking.extraHosts = ''
     127.0.0.1 garth.localhost.com.au
   '';
 
-  # FIX: Fallback Bootstrapping DNS
-  # When the Tailscale tunnel is DOWN (because internet is fresh), 
-  # we need these servers to resolve 'controlplane.tailscale.com' 
-  # so the tunnel can start. Once the tunnel is UP, Tailscale/NextDNS 
-  # takes over priority.
-  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+  # CRITICAL FIX 3: Commented out. 
+  # This allows the Hotspot's DHCP DNS to work, which allows Tailscale to connect.
+  # Once Tailscale connects, it will inject its own DNS preferences via systemd-resolved.
+  # networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
 
   time.timeZone = "Australia/Sydney";
   i18n.defaultLocale = "en_US.UTF-8";

@@ -181,6 +181,19 @@
         "type": "github"
       }
     },
+    "g-tui-go": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1764405901,
+        "narHash": "sha256-rBRa1YoB1HV098AAuSigWBQJn9FZJLIhD+/CR4WAXSk=",
+        "path": "/home/garth/files/code/g-tui-go",
+        "type": "path"
+      },
+      "original": {
+        "path": "/home/garth/files/code/g-tui-go",
+        "type": "path"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -326,6 +339,7 @@
         "apple-silicon": "apple-silicon",
         "catppuccin": "catppuccin",
         "firefox-nightly": "firefox-nightly",
+        "g-tui-go": "g-tui-go",
         "home-manager": "home-manager",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-stable": "nixpkgs-stable",

@@ -7,7 +7,17 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
-    initContent = ''
+    # Changed 'initContent' to 'initExtra' (standard Home Manager option)
+    initExtra = ''
+      # --- HISTORY SEARCH CONFIGURATION ---
+      # This binds Ctrl-P/N and Up/Down arrows to search history 
+      # based on the text currently typed in the buffer.
+      autoload -U history-search-end
+      bindkey '^P' history-beginning-search-backward
+      bindkey '^N' history-beginning-search-forward
+      bindkey '^[[A' history-beginning-search-backward
+      bindkey '^[[B' history-beginning-search-forward
+
       # --- API KEYS ---
       if [ -f "${config.sops.secrets.GEMINI_API_KEY.path}" ]; then
         export GEMINI_API_KEY=$(cat ${config.sops.secrets.GEMINI_API_KEY.path})
@@ -57,6 +67,23 @@
         git push --force-with-lease -u origin HEAD
         gh pr create --web || true
       }
+
+      # --- PROJECT JUMPER WIDGET (Alt+F) ---
+      function project-jumper-widget() {
+        # Run the project selector script and capture output
+        local selected_dir=$(project-selector)
+        
+        # If a directory was selected (user didn't press Esc)
+        if [[ -n "$selected_dir" ]]; then
+           BUFFER="cd $selected_dir"
+           zle accept-line
+        fi
+        zle reset-prompt
+      }
+      
+      # Register the widget and bind to Alt+f
+      zle -N project-jumper-widget
+      bindkey '^[f' project-jumper-widget
 
       # --- ZELLIJ AUTO-RENAMING LOGIC ---
       if [[ -n "$ZELLIJ" ]]; then
