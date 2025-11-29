@@ -22,5 +22,6 @@
     ./modules/system/config/bluetooth.nix
     ./modules/system/config/system-packages.nix
     ./modules/system/config/nextdns.nix
+    ./modules/system/config/vpn.nix
   ];
 }
