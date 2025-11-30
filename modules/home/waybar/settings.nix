@@ -1,4 +1,5 @@
-{ pkgs, wifiStatusScript, ... }:
+# modules/home/waybar/settings.nix
+{ pkgs, wifiStatusScript, mullvadStatusScript, ... }:
 
 {
   main-bar = {
@@ -6,7 +7,8 @@
     position = "top";
     modules-left = [ "hyprland/workspaces" "hyprland/window" ];
     modules-center = [ "cpu" "memory" "network#speed" ];
-    modules-right = [ "custom/theme" "custom/mcp" "pulseaudio" "backlight" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
+    modules-right = [ "custom/theme" "custom/mcp" "pulseaudio" "backlight" "custom/mullvad" "custom/wifi" "custom/battery" "clock" "custom/logout" ];
+
     "hyprland/workspaces" = {
       format = "{name}";
       format-icons = { "1" = ""; "2" = ""; "3" = ""; };
@@ -32,6 +34,18 @@
       format = "{}";
       on-click = "iwgtk";
     };
+
+    # MULLVAD CONFIG
+    "custom/mullvad" = {
+      exec = "${mullvadStatusScript}/bin/waybar-mullvad-status";
+      return-type = "json";
+      # Increased interval to reduce log spam/cpu usage
+      interval = 3;
+      format = "{}";
+      on-click = "${pkgs.mullvad-vpn}/bin/mullvad-vpn";
+      # REMOVED min-length to prevent ghost gaps
+    };
+
     pulseaudio = {
       format = "{icon} {volume}%";
       format-muted = " Muted";
