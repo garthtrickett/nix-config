@@ -64,9 +64,8 @@
       }
 
       function gpr() {
-        git push --force-with-lease --base -u origin HEAD
-        gh pr create --web || true
-      }
+        git push --force-with-lease  -u origin HEAD
+        gh pr create --base staging --web || true      }
 
       # --- PROJECT JUMPER WIDGET (Alt+F) ---
       function project-jumper-widget() {
